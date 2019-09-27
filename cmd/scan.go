@@ -49,13 +49,6 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	rootCmd.PersistentFlags().String("user", "root", "Username for SSH login")
-	rootCmd.PersistentFlags().String("ssh-key", "~/.ssh/id_rsa", "The ssh key to use for remote login")
-	rootCmd.PersistentFlags().Int("ssh-port", 22, "The port on which to connect for ssh")
-	_ = viper.BindPFlag("user", rootCmd.PersistentFlags().Lookup("user"))
-	_ = viper.BindPFlag("ssh-key", rootCmd.PersistentFlags().Lookup("ssh-key"))
-	_ = viper.BindPFlag("ssh-port", rootCmd.PersistentFlags().Lookup("ssh-port"))
-
 	rootCmd.AddCommand(scanCmd)
 	scanCmd.Flags().String("cidr", "192.168.1.0/24", "CIDR to scan for members")
 	scanCmd.Flags().String("substr", "", "Substring that should be part of hostname")

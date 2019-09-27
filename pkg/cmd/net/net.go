@@ -70,7 +70,7 @@ func receivePong(pongNum int, pongChan <-chan Pong, doneChan chan<- []Pong) {
 
 func ScanForRaspberries(cidr string, substr string, settings *ssh2.Settings) ([]string, error) {
 	hosts, _ := Hosts(cidr)
-	concurrentMax := 100
+	concurrentMax := 50
 	pingChan := make(chan string, concurrentMax)
 	pongChan := make(chan Pong, len(hosts))
 	doneChan := make(chan []Pong)
