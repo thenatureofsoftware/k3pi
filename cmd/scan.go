@@ -1,0 +1,80 @@
+/*
+Copyright © 2019 Lars Mogren <lars@thenatureofsoftware.se>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+package cmd
+
+import (
+	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/cmd/net"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
+
+// scanCmd represents the list command
+var scanCmd = &cobra.Command{
+	Use:   "scan",
+	Short: "Scans for members of the Raspberries",
+	Long: `A longer description that spans multiple lines and likely contains examples
+and usage of using your command. For example:
+
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		members, err := net.ScanForRaspberries(viper.GetString("cidr"), viper.GetString("substr"), sshSettings())
+		if err != nil {
+			fmt.Errorf("failed to scan for Raspberries: %d", err)
+		}
+		fmt.Printf("Members of Raspberries:\n%s\n", members)
+	},
+}
+
+func init() {
+	rootCmd.PersistentFlags().String("user", "root", "Username for SSH login")
+	rootCmd.PersistentFlags().String("ssh-key", "~/.ssh/id_rsa", "The ssh key to use for remote login")
+	rootCmd.PersistentFlags().Int("ssh-port", 22, "The port on which to connect for ssh")
+	_ = viper.BindPFlag("user", rootCmd.PersistentFlags().Lookup("user"))
+	_ = viper.BindPFlag("ssh-key", rootCmd.PersistentFlags().Lookup("ssh-key"))
+	_ = viper.BindPFlag("ssh-port", rootCmd.PersistentFlags().Lookup("ssh-port"))
+
+	rootCmd.AddCommand(scanCmd)
+	scanCmd.Flags().String("cidr", "192.168.1.0/24", "CIDR to scan for members")
+	scanCmd.Flags().String("substr", "", "Substring that should be part of hostname")
+	_ = viper.BindPFlag("cidr", scanCmd.Flags().Lookup("cidr"))
+	_ = viper.BindPFlag("substr", scanCmd.Flags().Lookup("substr"))
+
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// scanCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// scanCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func sshSettings() *ssh.Settings {
+	return &ssh.Settings{KeyPath: viper.GetString("ssh-key"),
+		User: viper.GetString("user"), Port: viper.GetString("ssh-port")}
+}
+
