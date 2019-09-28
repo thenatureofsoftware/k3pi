@@ -21,9 +21,10 @@ THE SOFTWARE.
 */
 package cmd
 
-import (
-	"fmt"
-
+import
+(
+	"github.com/spf13/viper"
+	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -38,12 +39,14 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("install called")
+		_ = cmd2.MakeInstaller(viper.GetBool("dry-run"), sshSettings(), "", []string{})
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(installCmd)
+	installCmd.Flags().Bool("dry-run", false, "If true will print the install commands but never run them")
+	_ = viper.BindPFlag("dry-run", installCmd.Flags().Lookup("dry-run"))
 
 	// Here you will define your flags and configuration settings.
 

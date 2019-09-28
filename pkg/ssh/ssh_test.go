@@ -57,7 +57,7 @@ func _TestRunCommand(t *testing.T) {
 	}
 
 	address := fmt.Sprintf("%s:%s", "192.168.1.31", settings.Port)
-	cmdOperator, err := NewCmdOperator(address, config)
+	cmdOperator, err := NewCmdOperator(address, config, true)
 	defer cmdOperator.Close()
 
 	if err != nil {

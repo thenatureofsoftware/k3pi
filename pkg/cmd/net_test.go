@@ -1,4 +1,4 @@
-package net
+package cmd
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestScanForPi(t *testing.T) {
-    raspberries, err := ScanForRaspberries("192.168.1.0/24", "rpi5",
+    raspberries, err := ScanForRaspberries("192.168.1.111/32", "rpi5",
     	&ssh.Settings{KeyPath: "~/.ssh/id_rsa", User: "tnos", Port: "22"})
 
 	if err != nil {

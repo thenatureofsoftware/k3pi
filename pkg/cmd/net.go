@@ -1,7 +1,8 @@
-package net
+package cmd
 
 import (
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/k3pi"
 	ssh2 "github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"golang.org/x/crypto/ssh"
 	"log"
@@ -68,7 +69,7 @@ func receivePong(pongNum int, pongChan <-chan Pong, doneChan chan<- []Pong) {
 	doneChan <- alives
 }
 
-func ScanForRaspberries(cidr string, substr string, settings *ssh2.Settings) ([]string, error) {
+func ScanForRaspberries(cidr string, substr string, settings *ssh2.Settings) ([]k3pi.Member, error) {
 	hosts, _ := Hosts(cidr)
 	concurrentMax := 50
 	pingChan := make(chan string, concurrentMax)
@@ -85,13 +86,13 @@ func ScanForRaspberries(cidr string, substr string, settings *ssh2.Settings) ([]
 		pingChan <- ip
 	}
 
-	config, closeHandler, err := ssh2.NewClientConfig(settings)
+	config, closeSSHAgent, err := ssh2.NewClientConfig(settings)
 	if err != nil {
 		log.Fatalf("failed to create ssh config: %d", err)
 	}
-	defer closeHandler()
+	defer closeSSHAgent()
 
-	raspberries := []string{}
+	raspberries := []k3pi.Member{}
 	alive := <-doneChan
 	for i := range alive {
 		ip := alive[i].Ip
@@ -100,10 +101,21 @@ func ScanForRaspberries(cidr string, substr string, settings *ssh2.Settings) ([]
 		if checkIfRaspberry(address, config) {
 			// fmt.Print("Yes\n")
 			if checkIfHostnameMatch(address, substr, config) {
-				raspberries = append(raspberries, ip)
+				raspberries = append(raspberries, k3pi.Member{
+					IP:   ip,
+					Type: "ssh-key",
+				})
 			}
 		} else {
-			// fmt.Print("No\n")
+			altConfig, _, _ := ssh2.NewHypriotClientConfig()
+			if checkIfRaspberry(address, altConfig) {
+				if checkIfHostnameMatch(address, substr, altConfig) {
+					raspberries = append(raspberries, k3pi.Member{
+						IP:   ip,
+						Type: "hypriot",
+					})
+				}
+			}
 		}
 	}
 
@@ -129,6 +141,7 @@ func checkIfHostnameMatch(ipAddress string, substr string, config *ssh.ClientCon
 
 func checkIfRaspberry(ipAddress string, config *ssh.ClientConfig) bool {
 	cmdOperator, err := ssh2.NewCmdOperator(ipAddress, config, false)
+
 	if err != nil {
 		return false
 	}

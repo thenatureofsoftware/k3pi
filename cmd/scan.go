@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/cmd/net"
+	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -40,11 +40,11 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		members, err := net.ScanForRaspberries(viper.GetString("cidr"), viper.GetString("substr"), sshSettings())
+		members, err := cmd2.ScanForRaspberries(viper.GetString("cidr"), viper.GetString("substr"), sshSettings())
 		if err != nil {
 			fmt.Errorf("failed to scan for Raspberries: %d", err)
 		}
-		fmt.Printf("Members of Raspberries:\n%s\n", members)
+		fmt.Printf("Members of Raspberries:\n%v\n", members)
 	},
 }
 
