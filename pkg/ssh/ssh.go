@@ -3,7 +3,7 @@ package ssh
 import (
 	"bytes"
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/k3pi"
+	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
@@ -79,39 +79,39 @@ func NewClientConfig(settings *Settings) (*ssh.ClientConfig, func() error, error
 			authMethod,
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout: time.Second*3,
+		Timeout:         time.Second * 3,
 	}, closeSSHAgent, nil
 }
 
-func NewHypriotClientConfig() (*ssh.ClientConfig, func() error, error) {
+func PasswordClientConfig(username string, password string) (*ssh.ClientConfig, func() error, error) {
 	return &ssh.ClientConfig{
-		User:              "pirate",
-		Auth:              []ssh.AuthMethod{ ssh.Password("hypriot") },
+		User:            username,
+		Auth:            []ssh.AuthMethod{ssh.Password(password)},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout: time.Second*3,
+		Timeout:         time.Second * 3,
 	}, func() error { return nil }, nil
 }
 
 type cmdRunner struct {
 	writeToStdOut bool
-	client *ssh.Client
+	client        *ssh.Client
 }
 
 func (s *cmdRunner) Close() error {
 	return s.client.Close()
 }
 
-func (s *cmdRunner) Execute(command string) (*k3pi.Result, error) {
+func (s *cmdRunner) Execute(command string) (*pkg.Result, error) {
 	sess, err := s.client.NewSession()
 	if err != nil {
-		return &k3pi.Result{}, err
+		return &pkg.Result{}, err
 	}
 
 	defer sess.Close()
 
 	sessStdOut, err := sess.StdoutPipe()
 	if err != nil {
-		return &k3pi.Result{}, err
+		return &pkg.Result{}, err
 	}
 
 	output := bytes.Buffer{}
@@ -132,7 +132,7 @@ func (s *cmdRunner) Execute(command string) (*k3pi.Result, error) {
 	}()
 	sessStderr, err := sess.StderrPipe()
 	if err != nil {
-		return &k3pi.Result{}, err
+		return &pkg.Result{}, err
 	}
 
 	errorOutput := bytes.Buffer{}
@@ -148,24 +148,24 @@ func (s *cmdRunner) Execute(command string) (*k3pi.Result, error) {
 	wg.Wait()
 
 	if err != nil {
-		return &k3pi.Result{}, err
+		return &pkg.Result{}, err
 	}
 
-	return &k3pi.Result{
+	return &pkg.Result{
 		StdErr: errorOutput.Bytes(),
 		StdOut: output.Bytes(),
 	}, nil
 }
 
-func NewCmdOperator(address string, config *ssh.ClientConfig, writeToStdOut bool) (k3pi.CmdOperator, error) {
-	client, err := ssh.Dial("tcp", address, config)
+func NewCmdOperator(ctx *pkg.CmdOperatorCtx) (pkg.CmdOperator, error) {
+	client, err := ssh.Dial("tcp", ctx.Address, ctx.SSHClientConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	cmdOperator := cmdRunner{
-		writeToStdOut: writeToStdOut,
-		client: client,
+		writeToStdOut: ctx.EnableStdOut,
+		client:        client,
 	}
 
 	return &cmdOperator, nil
@@ -199,4 +199,3 @@ func sshAgent(publicKeyPath string) (ssh.AuthMethod, func() error) {
 	}
 	return nil, func() error { return nil }
 }
-

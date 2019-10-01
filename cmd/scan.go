@@ -23,10 +23,15 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
+	"github.com/kubernetes-sigs/yaml"
+	_ "github.com/kubernetes-sigs/yaml"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"strings"
 )
 
 // scanCmd represents the list command
@@ -40,20 +45,46 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		members, err := cmd2.ScanForRaspberries(viper.GetString("cidr"), viper.GetString("substr"), sshSettings())
+		scanRequest := &cmd2.ScanRequest{
+			Cidr:              viper.GetString("cidr"),
+			HostnameSubString: viper.GetString("substr"),
+			SSHSettings:       sshSettings(),
+			UserCredentials:   credentials(viper.GetStringSlice("basic-auth")),
+		}
+		cmdOpFactory := &pkg.CmdOperatorFactory{Create: ssh.NewCmdOperator}
+		nodes, err := cmd2.ScanForRaspberries(scanRequest, misc.NewHostScanner(), cmdOpFactory )
 		if err != nil {
 			fmt.Errorf("failed to scan for Raspberries: %d", err)
 		}
-		fmt.Printf("Members of Raspberries:\n%v\n", members)
+		y, err := yaml.Marshal(nodes)
+		if err != nil {
+			fmt.Printf("err: %v\n", err)
+			return
+		}
+		fmt.Println(string(y))
 	},
+}
+
+// Splits slice of <username>:<password> and returns a map
+func credentials(basicAuths []string) map[string]string {
+	c := make(map[string]string)
+	for _, v := range basicAuths {
+		parts := strings.Split(v, ":")
+		if len(parts) == 2 {
+			c[parts[0]] = parts[1]
+		}
+	}
+	return c
 }
 
 func init() {
 	rootCmd.AddCommand(scanCmd)
 	scanCmd.Flags().String("cidr", "192.168.1.0/24", "CIDR to scan for members")
 	scanCmd.Flags().String("substr", "", "Substring that should be part of hostname")
+	scanCmd.Flags().StringSlice("basic-auth", []string{}, "Username and password separated with ':' for authentication")
 	_ = viper.BindPFlag("cidr", scanCmd.Flags().Lookup("cidr"))
 	_ = viper.BindPFlag("substr", scanCmd.Flags().Lookup("substr"))
+	_ = viper.BindPFlag("basic-auth", scanCmd.Flags().Lookup("basic-auth"))
 
 	// Here you will define your flags and configuration settings.
 
@@ -70,4 +101,3 @@ func sshSettings() *ssh.Settings {
 	return &ssh.Settings{KeyPath: viper.GetString("ssh-key"),
 		User: viper.GetString("user"), Port: viper.GetString("ssh-port")}
 }
-

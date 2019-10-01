@@ -3,6 +3,8 @@ module github.com/TheNatureOfSoftware/k3pi
 go 1.13
 
 require (
+	github.com/dustin/go-humanize v1.0.0
+	github.com/kubernetes-sigs/yaml v1.1.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5

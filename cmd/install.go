@@ -21,11 +21,16 @@ THE SOFTWARE.
 */
 package cmd
 
-import
-(
-	"github.com/spf13/viper"
+import (
+	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
+	"github.com/kubernetes-sigs/yaml"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"io/ioutil"
+	"log"
+	"os"
 )
 
 // installCmd represents the install command
@@ -39,14 +44,57 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		_ = cmd2.MakeInstaller(viper.GetBool("dry-run"), sshSettings(), "", []string{})
+		fn := viper.GetString("filename")
+
+		var bytes []byte
+		var err error
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			fmt.Println("data is being piped to stdin")
+			bytes, err = ioutil.ReadAll(os.Stdin)
+		} else {
+			if fn == "" {
+				fmt.Println(fmt.Errorf("Error: must specify --filename|-f"))
+				os.Exit(1)
+			}
+			bytes, err = ioutil.ReadFile(fn)
+		}
+
+		if err != nil {
+			log.Fatalf("Error reading input file, %s", err)
+		}
+
+		nodes := &[]pkg.Node{}
+		err = yaml.Unmarshal(bytes, nodes)
+		if err != nil {
+			log.Fatalf("Error parsing nodes from file, %s", err)
+		}
+
+		if len(*nodes) == 0 {
+			fmt.Println("No nodes found in file.")
+			return
+		}
+
+		server := (*nodes)[0]
+		agents := []pkg.Node{}
+		if len(*nodes) > 1 {
+			agents = (*nodes)[1:]
+		}
+
+		_ = cmd2.MakeInstaller(&cmd2.InstallTask{
+			Server: server,
+			Agents: agents,
+		})
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(installCmd)
 	installCmd.Flags().Bool("dry-run", false, "If true will print the install commands but never run them")
+	installCmd.Flags().StringP("filename", "f", "", "If true will print the install commands but never run them")
+	installCmd.Flags().Lookup("filename").NoOptDefVal = ""
 	_ = viper.BindPFlag("dry-run", installCmd.Flags().Lookup("dry-run"))
+	_ = viper.BindPFlag("filename", installCmd.Flags().Lookup("filename"))
 
 	// Here you will define your flags and configuration settings.
 

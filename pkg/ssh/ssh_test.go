@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	"io/ioutil"
 	"log"
 	"os"
@@ -17,11 +18,11 @@ func TestCreateSshSettings(t *testing.T) {
 }
 
 func TestLoadPublicKey(t *testing.T) {
-	dir, err := ioutil.TempDir(".", "test-")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+		dir, err := ioutil.TempDir(".", "test-")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.RemoveAll(dir)
 
 	keyFile := dir + "/id_rsa"
 	app := "ssh-keygen"
@@ -56,8 +57,12 @@ func _TestRunCommand(t *testing.T) {
 		t.Errorf("failed to run ping command: %d", err)
 	}
 
-	address := fmt.Sprintf("%s:%s", "192.168.1.31", settings.Port)
-	cmdOperator, err := NewCmdOperator(address, config, true)
+	ctx := &pkg.CmdOperatorCtx{
+		Address:         fmt.Sprintf("%s:%s", "192.168.1.31", settings.Port),
+		SSHClientConfig: config,
+		EnableStdOut:    false,
+	}
+	cmdOperator, err := NewCmdOperator(ctx)
 	defer cmdOperator.Close()
 
 	if err != nil {
