@@ -9,7 +9,7 @@ func TestMakeInstaller(t *testing.T) {
 	node := pkg.Node{
 		Address: "0.0.0.0",
 		Auth:    pkg.Auth{},
-		Arch:    "arm64",
+		Arch:    "aarch64",
 	}
 
 	server := node

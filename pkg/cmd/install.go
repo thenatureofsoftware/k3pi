@@ -72,10 +72,11 @@ func makeResourceDir(task *InstallTask) (string, error) {
 	}
 
 	url := "https://github.com/rancher/k3os/releases/download/v0.3.0/%s"
+	pathSeparator := string(os.PathSeparator)
 	for imageFile, checkSumFile := range images {
 		download := misc.FileDownload{
-			Filename:         imageFile,
-			CheckSumFilename: checkSumFile,
+			Filename:         fmt.Sprintf("%s%s%s", resourceDir, pathSeparator, imageFile),
+			CheckSumFilename: fmt.Sprintf("%s%s%s", resourceDir, pathSeparator, checkSumFile),
 			Url:              fmt.Sprintf(url, imageFile),
 			CheckSumUrl:      fmt.Sprintf(url, checkSumFile),
 		}

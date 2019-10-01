@@ -99,11 +99,15 @@ func DownloadAndVerify(download FileDownload) error {
     if err != nil {
         return err
     }
+    allValidCheckSums := string(checksum)
 
-    validCheckSum := strings.Split(string(checksum), " ")[0]
+    calcSHA256, err := CalculateSHA256(download.Filename)
+    if err != nil {
+        return fmt.Errorf("failed to calculate check sum: %v", err)
+    }
 
-    if calcSHA256, _ := CalculateSHA256(download.Filename); validCheckSum != calcSHA256  {
-        return fmt.Errorf("calculated sha256 checksum don't match: %s\n", calcSHA256)
+    if !strings.Contains(allValidCheckSums, calcSHA256) {
+        return fmt.Errorf("%s check sum is not valid for %s", calcSHA256, download.Filename)
     }
 
     return nil
