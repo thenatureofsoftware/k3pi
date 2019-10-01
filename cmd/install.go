@@ -75,15 +75,17 @@ to quickly create a Cobra application.`,
 			return
 		}
 
-		server := (*nodes)[0]
-		agents := []pkg.Node{}
+		server := (*nodes)[0].GetK3sTarget([]string{})
+		agents := []pkg.K3sTarget{}
 		if len(*nodes) > 1 {
-			agents = (*nodes)[1:]
+			for _, v := range (*nodes)[1:] {
+				agents = append(agents, *v.GetK3sTarget([]string{}))
+			}
 		}
 
 		_ = cmd2.MakeInstaller(&cmd2.InstallTask{
 			Server: server,
-			Agents: agents,
+			Agents: &agents,
 		})
 	},
 }

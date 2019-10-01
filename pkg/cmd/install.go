@@ -16,9 +16,10 @@ type Installer interface {
 }
 
 type InstallTask struct {
-	DryRun bool
-	Server pkg.Node
-	Agents []pkg.Node
+	DryRun            bool
+	Server            *pkg.K3sTarget
+	Agents            *[]pkg.K3sTarget
+	SSHAuthorizedKeys []string
 }
 
 type installer struct {
@@ -33,7 +34,7 @@ func (ins installer) Install() error {
 }
 
 func MakeInstaller(task *InstallTask) *[]Installer {
-	fmt.Printf("Installing %s as server and %d agents\n", task.Server.Address, len(task.Agents))
+	fmt.Printf("Installing %s as server and %d agents\n", task.Server.Node.Hostname, len(*task.Agents))
 
 	resourceDir, err := makeResourceDir(task)
 	if err != nil {
@@ -43,9 +44,9 @@ func MakeInstaller(task *InstallTask) *[]Installer {
 
 	installers := []Installer{}
 
-	installers = append(installers, makeServerInstaller(task))
+	installers = append(installers, makeServerInstaller(task, task.Server))
 
-	for _, agent := range task.Agents {
+	for _, agent := range *task.Agents {
 		installers = append(installers, makeAgentInstaller(task, &agent))
 	}
 
@@ -66,9 +67,9 @@ func makeResourceDir(task *InstallTask) (string, error) {
 	imageFileTemplate := "k3os-rootfs-%s.tar.gz"
 	checkSumFileTemplate := "sha256sum-%s.txt"
 	images := make(map[string]string)
-	images[fmt.Sprintf(imageFileTemplate, task.Server.GetArch())] = fmt.Sprintf(checkSumFileTemplate, task.Server.GetArch())
-	for _, agent := range task.Agents {
-		images[fmt.Sprintf(imageFileTemplate, agent.GetArch())] = fmt.Sprintf(checkSumFileTemplate, agent.GetArch())
+	images[fmt.Sprintf(imageFileTemplate, task.Server.Node.GetArch())] = fmt.Sprintf(checkSumFileTemplate, task.Server.Node.GetArch())
+	for _, agent := range *task.Agents {
+		images[fmt.Sprintf(imageFileTemplate, agent.Node.GetArch())] = fmt.Sprintf(checkSumFileTemplate, agent.Node.GetArch())
 	}
 
 	url := "https://github.com/rancher/k3os/releases/download/v0.3.0/%s"
@@ -89,10 +90,10 @@ func makeResourceDir(task *InstallTask) (string, error) {
 	return resourceDir, nil
 }
 
-func makeServerInstaller(task *InstallTask) Installer {
+func makeServerInstaller(task *InstallTask, target *pkg.K3sTarget) Installer {
 	return &installer{}
 }
 
-func makeAgentInstaller(task *InstallTask, node *pkg.Node) Installer {
+func makeAgentInstaller(task *InstallTask, target *pkg.K3sTarget) Installer {
 	return &installer{}
 }

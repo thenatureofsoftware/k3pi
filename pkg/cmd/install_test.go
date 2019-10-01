@@ -12,21 +12,27 @@ func TestMakeInstaller(t *testing.T) {
 		Arch:    "aarch64",
 	}
 
-	server := node
-	server.Address = "192.168.1.10"
+	server := pkg.K3sTarget{
+		SSHAuthorizedKeys: []string{},
+		Node:              &node,
+	}
+	server.Node.Address = "192.168.1.10"
 
 	agentAddresses := []string{"192.168.1.11", "192.168.1.12", "192.168.1.13"}
-	agents := []pkg.Node{}
+	agents := []pkg.K3sTarget{}
 	for _, v := range agentAddresses {
 		agent := node
 		agent.Address = v
-		agents = append(agents, agent)
+		agents = append(agents, pkg.K3sTarget{
+			SSHAuthorizedKeys: []string{},
+			Node:              &agent,
+		})
 	}
 
 	task := &InstallTask{
 		DryRun: false,
-		Server: server,
-		Agents: agents,
+		Server: &server,
+		Agents: &agents,
 	}
 	installers := MakeInstaller(task)
 

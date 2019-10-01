@@ -1,44 +1,44 @@
 package misc
 
 import (
-    "bufio"
-    "crypto/sha256"
-    "fmt"
-    "github.com/dustin/go-humanize"
-    "io"
-    "io/ioutil"
-    "log"
-    "net/http"
-    "os"
-    "strings"
+	"bufio"
+	"crypto/sha256"
+	"fmt"
+	"github.com/dustin/go-humanize"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"strings"
 )
 
 type FileDownload struct {
-    Filename, CheckSumFilename, Url, CheckSumUrl string
+	Filename, CheckSumFilename, Url, CheckSumUrl string
 }
 
 // WriteCounter counts the number of bytes written to it. It implements to the io.Writer
 // interface and we can pass this into io.TeeReader() which will report progress on each
 // write cycle.
 type WriteCounter struct {
-    Total uint64
+	Total uint64
 }
 
 func (wc *WriteCounter) Write(p []byte) (int, error) {
-    n := len(p)
-    wc.Total += uint64(n)
-    wc.PrintProgress()
-    return n, nil
+	n := len(p)
+	wc.Total += uint64(n)
+	wc.PrintProgress()
+	return n, nil
 }
 
 func (wc WriteCounter) PrintProgress() {
-    // Clear the line by using a character return to go back to the start and remove
-    // the remaining characters by filling it with spaces
-    fmt.Printf("\r%s", strings.Repeat(" ", 35))
+	// Clear the line by using a character return to go back to the start and remove
+	// the remaining characters by filling it with spaces
+	fmt.Printf("\r%s", strings.Repeat(" ", 35))
 
-    // Return again and print current status of download
-    // We use the humanize package to print the bytes in a meaningful way (e.g. 10 MB)
-    fmt.Printf("\rDownloading... %s complete", humanize.Bytes(wc.Total))
+	// Return again and print current status of download
+	// We use the humanize package to print the bytes in a meaningful way (e.g. 10 MB)
+	fmt.Printf("\rDownloading... %s complete", humanize.Bytes(wc.Total))
 }
 
 // DownloadFile will download a url to a local file. It's efficient because it will
@@ -46,87 +46,87 @@ func (wc WriteCounter) PrintProgress() {
 // into Copy() to report progress on the download.
 func DownloadFile(filepath string, url string) error {
 
-    // Create the file, but give it a tmp file extension, this means we won't overwrite a
-    // file until it's downloaded, but we'll remove the tmp extension once downloaded.
-    out, err := os.Create(filepath + ".tmp")
-    if err != nil {
-        return err
-    }
-    defer out.Close()
-    defer os.RemoveAll(filepath + ".tmp")
+	// Create the file, but give it a tmp file extension, this means we won't overwrite a
+	// file until it's downloaded, but we'll remove the tmp extension once downloaded.
+	out, err := os.Create(filepath + ".tmp")
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	defer os.RemoveAll(filepath + ".tmp")
 
-    // Get the data
-    resp, err := http.Get(url)
-    if err != nil {
-        return err
-    }
-    if resp.StatusCode != 200 {
-        return fmt.Errorf("%s - %s", url, resp.Status)
-    }
-    defer resp.Body.Close()
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("%s - %s", url, resp.Status)
+	}
+	defer resp.Body.Close()
 
-    // Create our progress reporter and pass it to be used alongside our writer
-    counter := &WriteCounter{}
-    _, err = io.Copy(out, io.TeeReader(resp.Body, counter))
-    if err != nil {
-        return err
-    }
+	// Create our progress reporter and pass it to be used alongside our writer
+	counter := &WriteCounter{}
+	_, err = io.Copy(out, io.TeeReader(resp.Body, counter))
+	if err != nil {
+		return err
+	}
 
-    // The progress use the same line so print a new line once it's finished downloading
-    fmt.Print("\n")
+	// The progress use the same line so print a new line once it's finished downloading
+	fmt.Print("\n")
 
-    err = os.Rename(filepath+".tmp", filepath)
-    if err != nil {
-        return err
-    }
+	err = os.Rename(filepath+".tmp", filepath)
+	if err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
 
 func DownloadAndVerify(download FileDownload) error {
 
-    err := DownloadFile(download.Filename, download.Url)
-    if err != nil {
-        return err
-    }
+	err := DownloadFile(download.Filename, download.Url)
+	if err != nil {
+		return err
+	}
 
-    err = DownloadFile(download.CheckSumFilename, download.CheckSumUrl)
-    if err != nil {
-        return err
-    }
+	err = DownloadFile(download.CheckSumFilename, download.CheckSumUrl)
+	if err != nil {
+		return err
+	}
 
-    checksum, err := ioutil.ReadFile(download.CheckSumFilename)
-    if err != nil {
-        return err
-    }
-    allValidCheckSums := string(checksum)
+	checksum, err := ioutil.ReadFile(download.CheckSumFilename)
+	if err != nil {
+		return err
+	}
+	allValidCheckSums := string(checksum)
 
-    calcSHA256, err := CalculateSHA256(download.Filename)
-    if err != nil {
-        return fmt.Errorf("failed to calculate check sum: %v", err)
-    }
+	calcSHA256, err := CalculateSHA256(download.Filename)
+	if err != nil {
+		return fmt.Errorf("failed to calculate check sum: %v", err)
+	}
 
-    if !strings.Contains(allValidCheckSums, calcSHA256) {
-        return fmt.Errorf("%s check sum is not valid for %s", calcSHA256, download.Filename)
-    }
+	if !strings.Contains(allValidCheckSums, calcSHA256) {
+		return fmt.Errorf("%s check sum is not valid for %s", calcSHA256, download.Filename)
+	}
 
-    return nil
+	return nil
 }
 
 func CalculateSHA256(filename string) (string, error) {
-    f, err := os.Open(filename)
-    if err != nil {
-        return "", err
-    }
-    defer f.Close()
+	f, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
 
-    input := bufio.NewReader(f)
+	input := bufio.NewReader(f)
 
-    hash := sha256.New()
-    if _, err := io.Copy(hash, input); err != nil {
-        log.Fatal(err)
-    }
-    sum := hash.Sum(nil)
+	hash := sha256.New()
+	if _, err := io.Copy(hash, input); err != nil {
+		log.Fatal(err)
+	}
+	sum := hash.Sum(nil)
 
-    return fmt.Sprintf("%x", sum), nil
+	return fmt.Sprintf("%x", sum), nil
 }

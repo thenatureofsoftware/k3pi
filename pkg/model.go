@@ -24,9 +24,10 @@ type CmdOperatorFactory struct {
 }
 
 type Node struct {
-	Address string `json:"address"`
-	Auth    Auth   `json:"auth"`
-	Arch string `json:"arch"`
+	Hostname string `json:"hostname"`
+	Address  string `json:"address"`
+	Auth     Auth   `json:"auth"`
+	Arch     string `json:"arch"`
 }
 
 func (n *Node) GetArch() string {
@@ -42,9 +43,21 @@ func (n *Node) GetArch() string {
 	}
 }
 
+func (n *Node) GetK3sTarget(sshAuthorizedKeys []string) *K3sTarget {
+	return &K3sTarget{
+		SSHAuthorizedKeys: sshAuthorizedKeys,
+		Node:              n,
+	}
+}
+
 type Auth struct {
 	Type     string `json:"type"`
 	User     string `json:"user"`
 	Password string `json:"password,omitempty"`
 	SSHKey   string `json:"ssh-key,omitempty"`
+}
+
+type K3sTarget struct {
+	SSHAuthorizedKeys []string
+	Node              *Node
 }

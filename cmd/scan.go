@@ -28,7 +28,6 @@ import (
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"github.com/kubernetes-sigs/yaml"
-	_ "github.com/kubernetes-sigs/yaml"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"strings"
@@ -52,7 +51,7 @@ to quickly create a Cobra application.`,
 			UserCredentials:   credentials(viper.GetStringSlice("basic-auth")),
 		}
 		cmdOpFactory := &pkg.CmdOperatorFactory{Create: ssh.NewCmdOperator}
-		nodes, err := cmd2.ScanForRaspberries(scanRequest, misc.NewHostScanner(), cmdOpFactory )
+		nodes, err := cmd2.ScanForRaspberries(scanRequest, misc.NewHostScanner(), cmdOpFactory)
 		if err != nil {
 			fmt.Errorf("failed to scan for Raspberries: %d", err)
 		}

@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/kubernetes-sigs/yaml"
+	"testing"
+)
 
 var cloudConfigYaml = `
 hostname: pi
@@ -11,6 +15,20 @@ k3os:
   k3s_args:
   - server
   - "--disable-agent"
+  environment:
+    http_proxy: http://myserver
+    http_proxys: http://myserver
+`
+
+var configTmpl = `
+hostname: {{.Node.Hostname}}
+ssh_authorized_keys:
+- github:foobar
+k3os:
+  k3s_args:
+  - server
+  - "--disable-agent"
+  - "--bind-address {{.Node.Address}}"
   environment:
     http_proxy: http://myserver
     http_proxys: http://myserver
@@ -41,4 +59,50 @@ func TestCloudConfig_LoadFrom(t *testing.T) {
 	if acctualSize != expectedSize {
 		t.Errorf("expected %d env variables, found %d", expectedSize, acctualSize)
 	}
+}
+
+func TestGenerateConfig(t *testing.T) {
+	// This is what we wan't
+	want := CloudConfig{
+		Hostname:          "k3s-server",
+		SshAuthorizedKeys: []string{"github:foobar"},
+		K3os: K3os{
+			K3sArgs: []string{
+				"server",
+				"--disable-agent",
+				"--bind-address 127.0.0.1",
+			},
+		},
+	}
+
+	// Generate
+	node := &pkg.Node{
+		Hostname: "k3s-server",
+		Address:  "127.0.0.1",
+		Auth:     pkg.Auth{},
+		Arch:     "aarch64",
+	}
+	configAsBytes, err := NewServerConfig("", &pkg.K3sTarget{
+		SSHAuthorizedKeys: []string{"github:foobar"},
+		Node:              node,
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	// This is what we got
+	actual := CloudConfig{}
+	actual.LoadFromBytes(*configAsBytes)
+
+	wantAsYaml := marshalToString(want)
+	actualAsYaml := marshalToString(actual)
+	if wantAsYaml != actualAsYaml {
+		t.Errorf("wanted:\n%s\nactual:\n%s\n", wantAsYaml, actualAsYaml)
+	}
+}
+
+func marshalToString(o interface{}) string {
+	bytes, _ := yaml.Marshal(o)
+	return string(bytes)
 }

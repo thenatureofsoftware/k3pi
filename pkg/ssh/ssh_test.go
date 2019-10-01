@@ -18,11 +18,11 @@ func TestCreateSshSettings(t *testing.T) {
 }
 
 func TestLoadPublicKey(t *testing.T) {
-		dir, err := ioutil.TempDir(".", "test-")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.RemoveAll(dir)
+	dir, err := ioutil.TempDir(".", "test-")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
 
 	keyFile := dir + "/id_rsa"
 	app := "ssh-keygen"
