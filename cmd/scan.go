@@ -60,7 +60,7 @@ to quickly create a Cobra application.`,
 			fmt.Printf("err: %v\n", err)
 			return
 		}
-		fmt.Println(string(y))
+		fmt.Print(string(y))
 	},
 }
 
@@ -78,22 +78,18 @@ func credentials(basicAuths []string) map[string]string {
 
 func init() {
 	rootCmd.AddCommand(scanCmd)
+	scanCmd.PersistentFlags().String("user", "root", "username for ssh login")
+	scanCmd.PersistentFlags().String("ssh-key", "~/.ssh/id_rsa", "ssh key to use for remote login")
+	scanCmd.PersistentFlags().Int("ssh-port", 22, "port on which to connect for ssh")
 	scanCmd.Flags().String("cidr", "192.168.1.0/24", "CIDR to scan for members")
 	scanCmd.Flags().String("substr", "", "Substring that should be part of hostname")
 	scanCmd.Flags().StringSlice("basic-auth", []string{}, "Username and password separated with ':' for authentication")
+	_ = viper.BindPFlag("user", scanCmd.PersistentFlags().Lookup("user"))
+	_ = viper.BindPFlag("ssh-key", scanCmd.PersistentFlags().Lookup("ssh-key"))
+	_ = viper.BindPFlag("ssh-port", scanCmd.PersistentFlags().Lookup("ssh-port"))
 	_ = viper.BindPFlag("cidr", scanCmd.Flags().Lookup("cidr"))
 	_ = viper.BindPFlag("substr", scanCmd.Flags().Lookup("substr"))
 	_ = viper.BindPFlag("basic-auth", scanCmd.Flags().Lookup("basic-auth"))
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// scanCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// scanCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 func sshSettings() *ssh.Settings {

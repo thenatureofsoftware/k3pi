@@ -47,27 +47,20 @@ func TestLoadPublicKey(t *testing.T) {
 	}
 }
 
-func _TestRunCommand(t *testing.T) {
+func TestRunCommand(t *testing.T) {
+	t.Skip("manual test")
 	settings := &Settings{User: "tnos", KeyPath: "~/.ssh/id_rsa", Port: "22"}
-	config, closeHandler, err := NewClientConfig(settings)
+	config, closeHandler := NewClientConfig(settings)
 
 	defer closeHandler()
-
-	if err != nil {
-		t.Errorf("failed to run ping command: %d", err)
-	}
 
 	ctx := &pkg.CmdOperatorCtx{
 		Address:         fmt.Sprintf("%s:%s", "192.168.1.31", settings.Port),
 		SSHClientConfig: config,
 		EnableStdOut:    false,
 	}
-	cmdOperator, err := NewCmdOperator(ctx)
+	cmdOperator := NewCmdOperator(ctx)
 	defer cmdOperator.Close()
-
-	if err != nil {
-		t.Errorf("failed to create cmdOperator: %d", err)
-	}
 
 	result, err := cmdOperator.Execute("echo hello")
 	if err != nil {

@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/kubernetes-sigs/yaml"
 	"testing"
 )
@@ -61,7 +63,7 @@ func TestCloudConfig_LoadFrom(t *testing.T) {
 	}
 }
 
-func TestGenerateConfig(t *testing.T) {
+func TestNewServerConfig(t *testing.T) {
 	// This is what we wan't
 	want := CloudConfig{
 		Hostname:          "k3s-server",
@@ -70,7 +72,8 @@ func TestGenerateConfig(t *testing.T) {
 			K3sArgs: []string{
 				"server",
 				"--disable-agent",
-				"--bind-address 127.0.0.1",
+				"--bind-address",
+				"127.0.0.1",
 			},
 		},
 	}
@@ -100,6 +103,30 @@ func TestGenerateConfig(t *testing.T) {
 	if wantAsYaml != actualAsYaml {
 		t.Errorf("wanted:\n%s\nactual:\n%s\n", wantAsYaml, actualAsYaml)
 	}
+}
+
+func TestNewAgentConfig(t *testing.T) {
+	var nodeYaml = `
+hostname: test
+address: 127.0.0.1
+arch: armv7l
+auth:
+  password: secret
+  type: basic-auth
+  user: root
+`
+
+	node := &pkg.Node{}
+	err := yaml.Unmarshal([]byte(nodeYaml), node)
+	misc.CheckError(err, "failed to unmarshal node")
+	serverIp := "127.0.0.2"
+	configAsBytes, err := NewAgentConfig("", &pkg.K3sTarget{
+		SSHAuthorizedKeys: []string{"github:foobar"},
+		Node:              node,
+		ServerIP:          serverIp,
+	})
+	misc.CheckError(err, "failed to create agent config")
+	fmt.Println(string(*configAsBytes))
 }
 
 func marshalToString(o interface{}) string {

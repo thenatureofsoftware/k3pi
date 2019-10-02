@@ -1,6 +1,12 @@
 package pkg
 
-import "golang.org/x/crypto/ssh"
+import (
+	"fmt"
+	"golang.org/x/crypto/ssh"
+	"os"
+)
+
+var imageFilenameTmpl = "k3os-rootfs-%s.tar.gz"
 
 // The stdin and stdout from executing a command.
 type Result struct {
@@ -54,10 +60,19 @@ type Auth struct {
 	Type     string `json:"type"`
 	User     string `json:"user"`
 	Password string `json:"password,omitempty"`
-	SSHKey   string `json:"ssh-key,omitempty"`
+	SSHKey   string `json:"ssh_key,omitempty"`
 }
 
 type K3sTarget struct {
 	SSHAuthorizedKeys []string
+	ServerIP string
 	Node              *Node
+}
+
+func (target *K3sTarget) GetImageFilename() string {
+	return fmt.Sprintf(imageFilenameTmpl, target.Node.GetArch())
+}
+
+func (target *K3sTarget) GetImageFilePath(resourceDir string) string {
+	return fmt.Sprintf("%s%s%s", resourceDir, string(os.PathSeparator), target.GetImageFilename())
 }

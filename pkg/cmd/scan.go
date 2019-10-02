@@ -5,7 +5,6 @@ import (
 	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	ssh2 "github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
-	"log"
 	"strings"
 )
 
@@ -30,10 +29,7 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 		return nil, err
 	}
 
-	config, closeSSHAgent, err := ssh2.NewClientConfig(request.SSHSettings)
-	if err != nil {
-		log.Fatalf("failed to create ssh config: %d", err)
-	}
+	config, closeSSHAgent := ssh2.NewClientConfig(request.SSHSettings)
 	defer closeSSHAgent()
 
 	raspberries := []pkg.Node{}
@@ -61,7 +57,7 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 			}
 		} else {
 			for username, password := range request.UserCredentials {
-				altConfig, _, _ := ssh2.PasswordClientConfig(username, password)
+				altConfig, _ := ssh2.PasswordClientConfig(username, password)
 				altCtx := *ctx
 				altCtx.SSHClientConfig = altConfig
 				if b, arch := checkArch(&altCtx, cmdOperatorFactory); b {
@@ -104,7 +100,6 @@ func checkIfHostnameMatch(hostnameSubStr string, ctx *pkg.CmdOperatorCtx, cmdOpe
 
 func checkArch(ctx *pkg.CmdOperatorCtx, cmdOperatorFactory *pkg.CmdOperatorFactory) (bool, string) {
 	cmdOperator, err := cmdOperatorFactory.Create(ctx)
-
 	if err != nil {
 		return false, ""
 	}

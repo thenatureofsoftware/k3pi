@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/kubernetes-sigs/yaml"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -75,26 +76,18 @@ to quickly create a Cobra application.`,
 			return
 		}
 
-		server := (*nodes)[0].GetK3sTarget([]string{})
-		agents := []pkg.K3sTarget{}
-		if len(*nodes) > 1 {
-			for _, v := range (*nodes)[1:] {
-				agents = append(agents, *v.GetK3sTarget([]string{}))
-			}
-		}
-
-		_ = cmd2.MakeInstaller(&cmd2.InstallTask{
-			Server: server,
-			Agents: &agents,
-		})
+		err = cmd2.Install(nodes, true)
+		misc.CheckError(err, "installation failed")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	installCmd.Flags().Bool("dry-run", false, "If true will print the install commands but never run them")
-	installCmd.Flags().StringP("filename", "f", "", "If true will print the install commands but never run them")
+	installCmd.Flags().Bool("dry-run", false, "if true will print the install commands but never run them")
+	installCmd.Flags().StringP("filename", "f", "", "YAML file with all nodes")
 	installCmd.Flags().Lookup("filename").NoOptDefVal = ""
+	installCmd.Flags().StringP("server", "s", "", "ip address or hostname of the server node")
+	installCmd.Flags().StringSlice("ssh-key", []string{}, "ssh authorized key that should be added to the rancher user")
 	_ = viper.BindPFlag("dry-run", installCmd.Flags().Lookup("dry-run"))
 	_ = viper.BindPFlag("filename", installCmd.Flags().Lookup("filename"))
 

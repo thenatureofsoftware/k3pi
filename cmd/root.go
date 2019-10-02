@@ -58,19 +58,6 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.k3pi.yaml)")
-
-	rootCmd.PersistentFlags().String("user", "root", "Username for SSH login")
-	rootCmd.PersistentFlags().String("ssh-key", "~/.ssh/id_rsa", "The ssh key to use for remote login")
-	rootCmd.PersistentFlags().Int("ssh-port", 22, "The port on which to connect for ssh")
-	_ = viper.BindPFlag("user", rootCmd.PersistentFlags().Lookup("user"))
-	_ = viper.BindPFlag("ssh-key", rootCmd.PersistentFlags().Lookup("ssh-key"))
-	_ = viper.BindPFlag("ssh-port", rootCmd.PersistentFlags().Lookup("ssh-port"))
 }
 
 // initConfig reads in config file and ENV variables if set.
