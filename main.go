@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 Lars Mogren <lars@thenatureofsoftware.se>
+Copyright © 2019 The Nature of Software Nordic AB <lars@thenatureofsoftware.se>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

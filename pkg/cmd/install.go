@@ -1,3 +1,24 @@
+/*
+Copyright © 2019 The Nature of Software Nordic AB <lars@thenatureofsoftware.se>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
 package cmd
 
 import (
@@ -160,7 +181,38 @@ func makeInstaller(task *InstallTask, target *pkg.K3sTarget, server bool) Instal
 }
 
 // Installs k3os on all nodes.
-func Install(nodes *[]pkg.Node, dryRun bool) error {
+func Install(nodes []*pkg.Node, sshKeys []string, serverId string, token string, dryRun bool) error {
+
+    serverNode, agentNodes, err := SelectServerAndAgents(nodes, serverId)
+    misc.CheckError(err, "failed to resolve server and agents")
+
+    if serverNode != nil {
+        fmt.Printf("server:\t%s\n", serverNode.Address)
+    } else {
+        if len(token) == 0 {
+            return fmt.Errorf("no server selected and no join token")
+        }
+    }
+
+    var agentIPs []string
+    for _, v := range agentNodes { agentIPs = append(agentIPs, v.Address) }
+    fmt.Printf("agents:\t%s\n", agentIPs)
+
     return nil
 }
+
+func SelectServerAndAgents(nodes []*pkg.Node, serverId string) (*pkg.Node, []*pkg.Node, error) {
+    var serverNode *pkg.Node = nil
+    var agentNodes []*pkg.Node
+
+    for _, node := range nodes {
+        if node.Hostname == serverId || node.Address == serverId {
+            serverNode = node
+        } else {
+            agentNodes = append(agentNodes, node)
+        }
+    }
+    return serverNode, agentNodes, nil
+}
+
 

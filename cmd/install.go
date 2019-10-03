@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 Lars Mogren <lars@thenatureofsoftware.se>
+Copyright © 2019 The Nature of Software Nordic AB <lars@thenatureofsoftware.se>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,20 +30,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/ioutil"
-	"log"
 	"os"
 )
 
 // installCmd represents the install command
 var installCmd = &cobra.Command{
 	Use:   "install",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Installs k3os on selected nodes",
+	Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		fn := viper.GetString("filename")
 
@@ -51,33 +45,36 @@ to quickly create a Cobra application.`,
 		var err error
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeCharDevice) == 0 {
-			fmt.Println("data is being piped to stdin")
+			//fmt.Println("data is being piped to stdin")
 			bytes, err = ioutil.ReadAll(os.Stdin)
 		} else {
 			if fn == "" {
-				fmt.Println(fmt.Errorf("Error: must specify --filename|-f"))
+				fmt.Println("Error: must specify --filename|-f")
 				os.Exit(1)
 			}
 			bytes, err = ioutil.ReadFile(fn)
 		}
+		misc.CheckError(err, "error reading input file")
 
-		if err != nil {
-			log.Fatalf("Error reading input file, %s", err)
-		}
+		nodes := []*pkg.Node{}
+		err = yaml.Unmarshal(bytes, &nodes)
+		misc.CheckError(err, "error parsing nodes from file")
 
-		nodes := &[]pkg.Node{}
-		err = yaml.Unmarshal(bytes, nodes)
-		if err != nil {
-			log.Fatalf("Error parsing nodes from file, %s", err)
-		}
-
-		if len(*nodes) == 0 {
-			fmt.Println("No nodes found in file.")
+		if len(nodes) == 0 {
+			fmt.Println("No nodes found in file")
 			return
 		}
 
-		err = cmd2.Install(nodes, true)
-		misc.CheckError(err, "installation failed")
+		sshKeys := viper.GetStringSlice("ssh-key")
+		server := viper.GetString("server")
+		token := viper.GetString("token")
+
+		err = cmd2.Install(nodes, sshKeys, server, token, true)
+
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+			os.Exit(1)
+		}
 	},
 }
 
@@ -87,17 +84,11 @@ func init() {
 	installCmd.Flags().StringP("filename", "f", "", "YAML file with all nodes")
 	installCmd.Flags().Lookup("filename").NoOptDefVal = ""
 	installCmd.Flags().StringP("server", "s", "", "ip address or hostname of the server node")
+	installCmd.Flags().StringP("token", "t", "", "token or cluster secret for joining a server")
 	installCmd.Flags().StringSlice("ssh-key", []string{}, "ssh authorized key that should be added to the rancher user")
 	_ = viper.BindPFlag("dry-run", installCmd.Flags().Lookup("dry-run"))
 	_ = viper.BindPFlag("filename", installCmd.Flags().Lookup("filename"))
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// installCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// installCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	_ = viper.BindPFlag("server", installCmd.Flags().Lookup("server"))
+	_ = viper.BindPFlag("ssh-key", installCmd.Flags().Lookup("ssh-key"))
+	_ = viper.BindPFlag("token", installCmd.Flags().Lookup("token"))
 }
