@@ -106,7 +106,7 @@ func TestNewServerConfig(t *testing.T) {
 		Auth:     pkg.Auth{},
 		Arch:     "aarch64",
 	}
-	configAsBytes, err := NewServerConfig("", &pkg.K3sTarget{
+	configAsBytes, err := NewServerConfig("", &pkg.Target{
 		SSHAuthorizedKeys: []string{"github:foobar"},
 		Node:              node,
 	})
@@ -141,7 +141,7 @@ auth:
 	err := yaml.Unmarshal([]byte(nodeYaml), node)
 	misc.CheckError(err, "failed to unmarshal node")
 	serverIp := "127.0.0.2"
-	configAsBytes, err := NewAgentConfig("", &pkg.K3sTarget{
+	configAsBytes, err := NewAgentConfig("", &pkg.Target{
 		SSHAuthorizedKeys: []string{"github:foobar"},
 		Node:              node,
 		ServerIP:          serverIp,

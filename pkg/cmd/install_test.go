@@ -47,18 +47,18 @@ func TestMakeInstaller(t *testing.T) {
 		Arch:    "aarch64",
 	}
 
-	server := pkg.K3sTarget{
+	server := pkg.Target{
 		SSHAuthorizedKeys: []string{},
 		Node:              &node,
 	}
 	server.Node.Address = "192.168.1.10"
 
 	agentAddresses := []string{"192.168.1.11", "192.168.1.12", "192.168.1.13"}
-	var agents []pkg.K3sTarget
+	var agents []pkg.Target
 	for _, v := range agentAddresses {
 		agent := node
 		agent.Address = v
-		agents = append(agents, pkg.K3sTarget{
+		agents = append(agents, pkg.Target{
 			SSHAuthorizedKeys: []string{},
 			Node:              &agent,
 		})
@@ -85,18 +85,18 @@ func TestInstaller_Install(t *testing.T) {
 
 	node.Address = "192.168.1.128"
 	node.Hostname = "k3pi-1"
-	server := pkg.K3sTarget{
+	server := pkg.Target{
 		SSHAuthorizedKeys: []string{
 			"github:larmog",
 		},
 		ServerIP: "192.168.1.126",
-		Node: node,
+		Node:     node,
 	}
 
 	task := &InstallTask{
 		DryRun: false,
 		Server: &server,
-		Agents: &[]pkg.K3sTarget{},
+		Agents: &[]pkg.Target{},
 	}
 
 	resourceDir := MakeResourceDir(task)
@@ -112,7 +112,7 @@ func TestSelectServerAndAgents_No_Match(t *testing.T) {
 	server, agents, err := SelectServerAndAgents(nodes, "missing")
 
 	if err != nil {
-		t.Error(errors.Wrap(err,"unexpected error"))
+		t.Error(errors.Wrap(err, "unexpected error"))
 	}
 
 	if server != nil {
@@ -130,7 +130,7 @@ func TestSelectServerAndAgents_No_Nodes(t *testing.T) {
 	server, agents, err := SelectServerAndAgents(nodes, "my-server")
 
 	if err != nil {
-		t.Error(errors.Wrap(err,"unexpected error"))
+		t.Error(errors.Wrap(err, "unexpected error"))
 	}
 
 	if server != nil {
@@ -149,7 +149,7 @@ func TestSelectServerAndAgents_Match_Hostname(t *testing.T) {
 	server, agents, err := SelectServerAndAgents(nodes, hostname)
 
 	if err != nil {
-		t.Error(errors.Wrap(err,"unexpected error"))
+		t.Error(errors.Wrap(err, "unexpected error"))
 	}
 
 	if server == nil {
@@ -168,7 +168,7 @@ func TestSelectServerAndAgents_Match_Address(t *testing.T) {
 	server, agents, err := SelectServerAndAgents(nodes, address)
 
 	if err != nil {
-		t.Error(errors.Wrap(err,"unexpected error"))
+		t.Error(errors.Wrap(err, "unexpected error"))
 	}
 
 	if server == nil {

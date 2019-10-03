@@ -51,8 +51,6 @@ k3os:
   ntp_servers:
   - 0.europe.pool.ntp.org
   - 1.europe.pool.ntp.org
-  environment:
-    INSTALL_K3S_VERSION: v0.9.1
 `
 
 var AgentConfigTmpl = `hostname: {{.Node.Hostname}}
@@ -102,7 +100,7 @@ func (c *CloudConfig) LoadFromBytes(content []byte) *CloudConfig {
 	return c
 }
 
-func NewServerConfig(configTmpl string, target *pkg.K3sTarget) (*[]byte, error) {
+func NewServerConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
 	tmpl := configTmpl
 	if tmpl == "" {
 		tmpl = ServerConfigTmpl
@@ -110,7 +108,7 @@ func NewServerConfig(configTmpl string, target *pkg.K3sTarget) (*[]byte, error) 
 	return generateConfig(tmpl, target)
 }
 
-func NewAgentConfig(configTmpl string, target *pkg.K3sTarget) (*[]byte, error) {
+func NewAgentConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
 	tmpl := configTmpl
 	if tmpl == "" {
 		tmpl = AgentConfigTmpl
@@ -118,7 +116,7 @@ func NewAgentConfig(configTmpl string, target *pkg.K3sTarget) (*[]byte, error) {
 	return generateConfig(tmpl, target)
 }
 
-func generateConfig(configTmpl string, target *pkg.K3sTarget) (*[]byte, error) {
+func generateConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
 
 	tmpl, err := template.New("cloud-config").Parse(configTmpl)
 	if err != nil {

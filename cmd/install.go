@@ -37,7 +37,7 @@ import (
 var installCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Installs k3os on selected nodes",
-	Long: ``,
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		fn := viper.GetString("filename")
 

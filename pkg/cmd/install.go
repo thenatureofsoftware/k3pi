@@ -38,25 +38,14 @@ import (
 
 var checkSumFileTemplate = "sha256sum-%s.txt"
 
-type Installer interface {
-	Install(resourceDir string) error
-}
-
-type InstallTask struct {
-	DryRun            bool
-	Server            *pkg.K3sTarget
-	Agents            *[]pkg.K3sTarget
-	SSHAuthorizedKeys []string
-}
-
 type installer struct {
 	resourceDir     string
 	config          *[]byte
-	target          *pkg.K3sTarget
+	target          *pkg.Target
 	operatorFactory *pkg.CmdOperatorFactory
 }
 
-func (ins *installer) Install(resourceDir string) error {
+func (ins *installer) Install() error {
 	sshConfig, sshAgentCloseHandler := ssh.NewClientConfigFor(ins.target.Node)
 	defer sshAgentCloseHandler()
 
@@ -67,7 +56,7 @@ func (ins *installer) Install(resourceDir string) error {
 	err := scpClient.Connect()
 	misc.CheckError(err, fmt.Sprintf("scp client failed to connect to %s", address))
 
-	imageFile, err := os.Open(ins.target.GetImageFilePath(resourceDir))
+	imageFile, err := os.Open(ins.target.GetImageFilePath(ins.resourceDir))
 	misc.CheckError(err, "failed to open image file")
 	defer imageFile.Close()
 	stat, err := imageFile.Stat()
@@ -92,7 +81,7 @@ func (ins *installer) Install(resourceDir string) error {
 	}
 
 	operator, err := ins.operatorFactory.Create(ctx)
-    misc.CheckError(err, fmt.Sprintf("failed to connect to %s", ctx.Address))
+	misc.CheckError(err, fmt.Sprintf("failed to connect to %s", ctx.Address))
 
 	result, err := operator.Execute(fmt.Sprintf("sudo tar zxvf %s --strip-components=1 -C /", ins.target.GetImageFilename()))
 	if err2 := errors.Wrap(err, fmt.Sprintf("failed to extract %s, result:\n %v", ins.target.GetImageFilename(), result)); err2 != nil {
@@ -107,33 +96,29 @@ func (ins *installer) Install(resourceDir string) error {
 	return nil
 }
 
-func MakeInstallers(task *InstallTask) *[]Installer {
-	fmt.Printf("Installing %s as server and %d agents\n", task.Server.Node.Hostname, len(*task.Agents))
+func MakeInstallers(task *pkg.InstallTask, resourceDir string) pkg.Installers {
 
-	resourceDir := MakeResourceDir(task)
-	defer os.RemoveAll(resourceDir)
+	var installers pkg.Installers
 
-	installers := []Installer{}
+	installers = append(installers, makeInstaller(task, task.Server, resourceDir, true))
 
-	installers = append(installers, makeInstaller(task, task.Server, true))
-
-	for _, agent := range *task.Agents {
-		installers = append(installers, makeInstaller(task, &agent, false))
+	for _, agent := range task.Agents {
+		installers = append(installers, makeInstaller(task, agent, resourceDir, false))
 	}
 
-	return &installers
+	return installers
 }
 
-func MakeResourceDir(task *InstallTask) string {
-	homedir, err := homedir.Dir()
+func MakeResourceDir(task *pkg.InstallTask) string {
+	home, err := homedir.Dir()
 	misc.CheckError(err, "failed to resolve home directory")
 
-	resourceDir, err := ioutil.TempDir(homedir, ".k3pi-")
-    misc.CheckError(err, "failed to create resource directory")
+	resourceDir, err := ioutil.TempDir(home, ".k3pi-")
+	misc.CheckError(err, "failed to create resource directory")
 
 	images := make(map[string]string)
 	images[task.Server.GetImageFilename()] = fmt.Sprintf(checkSumFileTemplate, task.Server.Node.GetArch())
-	for _, agent := range *task.Agents {
+	for _, agent := range task.Agents {
 		images[agent.GetImageFilename()] = fmt.Sprintf(checkSumFileTemplate, agent.Node.GetArch())
 	}
 
@@ -147,13 +132,13 @@ func MakeResourceDir(task *InstallTask) string {
 			CheckSumUrl:      fmt.Sprintf(url, checkSumFile),
 		}
 		err := misc.DownloadAndVerify(download)
-        misc.CheckError(err, "failed to create resource directory")
+		misc.CheckError(err, "failed to create resource directory")
 	}
 
 	return resourceDir
 }
 
-func makeInstaller(task *InstallTask, target *pkg.K3sTarget, server bool) Installer {
+func makeInstaller(task *pkg.InstallTask, target *pkg.Target, resourceDir string, server bool) pkg.Installer {
 
 	var configYaml *[]byte
 	var err error
@@ -174,6 +159,7 @@ func makeInstaller(task *InstallTask, target *pkg.K3sTarget, server bool) Instal
 	}
 
 	return &installer{
+		resourceDir:     resourceDir,
 		config:          configYaml,
 		target:          target,
 		operatorFactory: cmdOperatorFactory,
@@ -181,38 +167,99 @@ func makeInstaller(task *InstallTask, target *pkg.K3sTarget, server bool) Instal
 }
 
 // Installs k3os on all nodes.
-func Install(nodes []*pkg.Node, sshKeys []string, serverId string, token string, dryRun bool) error {
+func Install(nodes pkg.Nodes, sshKeys []string, serverId string, token string, dryRun bool) error {
 
-    serverNode, agentNodes, err := SelectServerAndAgents(nodes, serverId)
-    misc.CheckError(err, "failed to resolve server and agents")
+	serverNode, agentNodes, err := SelectServerAndAgents(nodes, serverId)
+	misc.CheckError(err, "failed to resolve server and agents")
 
-    if serverNode != nil {
-        fmt.Printf("server:\t%s\n", serverNode.Address)
-    } else {
-        if len(token) == 0 {
-            return fmt.Errorf("no server selected and no join token")
-        }
-    }
+	if serverNode != nil {
+		fmt.Printf("server:\t%s\n", serverNode.Address)
+	} else {
+		if len(token) == 0 {
+			return fmt.Errorf("no server selected and no join token")
+		}
+	}
 
-    var agentIPs []string
-    for _, v := range agentNodes { agentIPs = append(agentIPs, v.Address) }
-    fmt.Printf("agents:\t%s\n", agentIPs)
+	fmt.Printf("agents:\t%s\n", agentNodes.IPAddresses())
 
-    return nil
+	var serverTarget *pkg.Target
+	agentTargets := agentNodes.Targets(sshKeys)
+
+	if serverNode != nil {
+		serverTarget = serverNode.GetTarget(sshKeys)
+		agentTargets.SetServerIP(serverNode.Address)
+	}
+
+	installTask := &pkg.InstallTask{
+		DryRun: dryRun,
+		Server: serverTarget,
+		Agents: agentTargets,
+	}
+
+	resourceDir := MakeResourceDir(installTask)
+	defer os.RemoveAll(resourceDir)
+
+	installers := MakeInstallers(installTask, resourceDir)
+
+	err = runInstall(installers)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func SelectServerAndAgents(nodes []*pkg.Node, serverId string) (*pkg.Node, []*pkg.Node, error) {
-    var serverNode *pkg.Node = nil
-    var agentNodes []*pkg.Node
-
-    for _, node := range nodes {
-        if node.Hostname == serverId || node.Address == serverId {
-            serverNode = node
-        } else {
-            agentNodes = append(agentNodes, node)
-        }
-    }
-    return serverNode, agentNodes, nil
+type installResult struct {
+	installer pkg.Installer
+	err       error
 }
 
+func runInstall(installers pkg.Installers) error {
+	installChan := make(chan pkg.Installer, 5)
+	doneChan := make(chan installResult)
 
+	for i := 0; i < 5; i++ {
+		go func() {
+			installer := <-installChan
+			err := installer.Install()
+			doneChan <- installResult{
+				installer: installer,
+				err:       err,
+			}
+		}()
+	}
+
+	for _, installer := range installers {
+		installChan <- installer
+	}
+
+	var installErrors []error
+	for i := 0; i < len(installers); i++ {
+		result := <-doneChan
+		if result.err != nil {
+			installErrors = append(installErrors, errors.Wrap(result.err, fmt.Sprintf("install failed for installer: %v", result.installer)))
+		}
+	}
+
+	if len(installErrors) > 0 {
+		return fmt.Errorf("install errors: %s", installErrors)
+	} else {
+		return nil
+	}
+}
+
+func SelectServerAndAgents(nodes pkg.Nodes, serverId string) (*pkg.Node, pkg.Nodes, error) {
+
+	var serverNode *pkg.Node = nil
+	var agentNodes pkg.Nodes
+
+	for _, node := range nodes {
+		if node.Hostname == serverId || node.Address == serverId {
+			serverNode = node
+		} else {
+			agentNodes = append(agentNodes, node)
+		}
+	}
+
+	return serverNode, agentNodes, nil
+}

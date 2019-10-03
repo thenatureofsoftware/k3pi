@@ -57,6 +57,8 @@ type Node struct {
 	Arch     string `json:"arch"`
 }
 
+type Nodes []*Node
+
 func (n *Node) GetArch() string {
 	switch n.Arch {
 	case "x86_64":
@@ -70,11 +72,19 @@ func (n *Node) GetArch() string {
 	}
 }
 
-func (n *Node) GetK3sTarget(sshAuthorizedKeys []string) *K3sTarget {
-	return &K3sTarget{
+func (n *Node) GetTarget(sshAuthorizedKeys []string) *Target {
+	return &Target{
 		SSHAuthorizedKeys: sshAuthorizedKeys,
 		Node:              n,
 	}
+}
+
+func (nodes *Nodes) IPAddresses() []string {
+	var ipAddresses []string
+	for _, v := range *nodes {
+		ipAddresses = append(ipAddresses, v.Address)
+	}
+	return ipAddresses
 }
 
 type Auth struct {
@@ -84,16 +94,44 @@ type Auth struct {
 	SSHKey   string `json:"ssh_key,omitempty"`
 }
 
-type K3sTarget struct {
+type Target struct {
 	SSHAuthorizedKeys []string
-	ServerIP string
+	ServerIP          string
 	Node              *Node
 }
 
-func (target *K3sTarget) GetImageFilename() string {
+func (target *Target) GetImageFilename() string {
 	return fmt.Sprintf(imageFilenameTmpl, target.Node.GetArch())
 }
 
-func (target *K3sTarget) GetImageFilePath(resourceDir string) string {
+func (target *Target) GetImageFilePath(resourceDir string) string {
 	return fmt.Sprintf("%s%s%s", resourceDir, string(os.PathSeparator), target.GetImageFilename())
+}
+
+type Targets []*Target
+
+func (targets *Targets) SetServerIP(serverIP string) {
+	for _, target := range *targets {
+		target.ServerIP = serverIP
+	}
+}
+
+func (nodes *Nodes) Targets(sshAuthorizedKeys []string) Targets {
+	var targets Targets
+	for _, node := range *nodes {
+		targets = append(targets, node.GetTarget(sshAuthorizedKeys))
+	}
+	return targets
+}
+
+type Installer interface {
+	Install() error
+}
+
+type Installers []Installer
+
+type InstallTask struct {
+	DryRun bool
+	Server *Target
+	Agents Targets
 }
