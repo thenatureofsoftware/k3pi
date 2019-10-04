@@ -48,18 +48,15 @@ to quickly create a Cobra application.`,
 			Cidr:              viper.GetString("cidr"),
 			HostnameSubString: viper.GetString("substr"),
 			SSHSettings:       sshSettings(),
-			UserCredentials:   credentials(viper.GetStringSlice("basic-auth")),
+			UserCredentials:   credentials(viper.GetStringSlice("auth")),
 		}
 		cmdOpFactory := &pkg.CmdOperatorFactory{Create: ssh.NewCmdOperator}
 		nodes, err := cmd2.ScanForRaspberries(scanRequest, misc.NewHostScanner(), cmdOpFactory)
-		if err != nil {
-			fmt.Errorf("failed to scan for Raspberries: %d", err)
-		}
+		misc.ExitOnError(err, "node scan failed")
+
 		y, err := yaml.Marshal(nodes)
-		if err != nil {
-			fmt.Printf("err: %v\n", err)
-			return
-		}
+		misc.ExitOnError(err, "node scan failed")
+
 		fmt.Print(string(y))
 	},
 }
@@ -78,18 +75,18 @@ func credentials(basicAuths []string) map[string]string {
 
 func init() {
 	rootCmd.AddCommand(scanCmd)
-	scanCmd.PersistentFlags().String("user", "root", "username for ssh login")
-	scanCmd.PersistentFlags().String("ssh-key", "~/.ssh/id_rsa", "ssh key to use for remote login")
-	scanCmd.PersistentFlags().Int("ssh-port", 22, "port on which to connect for ssh")
+	scanCmd.Flags().String("user", "root", "username for ssh login")
+	scanCmd.Flags().String("ssh-key", "~/.ssh/id_rsa", "ssh key to use for remote login")
+	scanCmd.Flags().Int("ssh-port", 22, "port on which to connect for ssh")
 	scanCmd.Flags().String("cidr", "192.168.1.0/24", "CIDR to scan for members")
 	scanCmd.Flags().String("substr", "", "Substring that should be part of hostname")
-	scanCmd.Flags().StringSlice("basic-auth", []string{}, "Username and password separated with ':' for authentication")
-	_ = viper.BindPFlag("user", scanCmd.PersistentFlags().Lookup("user"))
-	_ = viper.BindPFlag("ssh-key", scanCmd.PersistentFlags().Lookup("ssh-key"))
-	_ = viper.BindPFlag("ssh-port", scanCmd.PersistentFlags().Lookup("ssh-port"))
+	scanCmd.Flags().StringSliceP("auth", "a", []string{}, "Username and password separated with ':' for authentication")
+	_ = viper.BindPFlag("user", scanCmd.Flags().Lookup("user"))
+	_ = viper.BindPFlag("ssh-key", scanCmd.Flags().Lookup("ssh-key"))
+	_ = viper.BindPFlag("ssh-port", scanCmd.Flags().Lookup("ssh-port"))
 	_ = viper.BindPFlag("cidr", scanCmd.Flags().Lookup("cidr"))
 	_ = viper.BindPFlag("substr", scanCmd.Flags().Lookup("substr"))
-	_ = viper.BindPFlag("basic-auth", scanCmd.Flags().Lookup("basic-auth"))
+	_ = viper.BindPFlag("auth", scanCmd.Flags().Lookup("auth"))
 }
 
 func sshSettings() *ssh.Settings {

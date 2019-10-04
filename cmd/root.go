@@ -23,6 +23,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/spf13/cobra"
 	"os"
 
@@ -68,10 +69,7 @@ func initConfig() {
 	} else {
 		// Find home directory.
 		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		misc.ExitOnError(err)
 
 		// Search config in home directory with name ".k3pi" (without extension).
 		viper.AddConfigPath(home)

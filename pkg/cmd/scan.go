@@ -50,7 +50,8 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 		return nil, err
 	}
 
-	config, closeSSHAgent := ssh2.NewClientConfig(request.SSHSettings)
+	config, closeSSHAgent, err := ssh2.NewClientConfig(request.SSHSettings)
+	misc.PanicOnError(err, "failed to create ssh config")
 	defer closeSSHAgent()
 
 	raspberries := []pkg.Node{}

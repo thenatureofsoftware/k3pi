@@ -21,10 +21,57 @@ THE SOFTWARE.
 */
 package misc
 
-import "github.com/pkg/errors"
+import (
+	"fmt"
+	"github.com/pkg/errors"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+)
 
-func CheckError(err error, message string) {
+func PanicOnError(err error, message string) {
 	if err != nil {
 		panic(errors.Wrap(err, message))
 	}
+}
+
+func ExitOnError(err error, message... string) {
+	if err != nil {
+		if len(message) > 0 {
+			ErrorExitWithError(errors.Wrap(err, message[0]))
+		} else {
+			ErrorExitWithError(err)
+		}
+	}
+}
+
+func Info(message string) {
+	fmt.Printf("%s\n", message)
+}
+
+func ErrorExitWithMessage(message string) {
+	fmt.Printf("Error: %s\n", message)
+	os.Exit(1)
+}
+
+func ErrorExitWithError(err error) {
+	fmt.Printf("Error: %s\n", err)
+	os.Exit(1)
+}
+
+func CreateTempFileName(dir string, pattern string) string {
+	dirPath, err := filepath.Abs(dir)
+	PanicOnError(err, "failed to resolve abs path")
+
+	f, err := ioutil.TempFile(dirPath, pattern)
+	PanicOnError(err, "failed to create temp file")
+
+	fn := f.Name()
+	err = f.Close()
+	PanicOnError(err, "failed to close temp file")
+
+	err = os.Remove(fn)
+	PanicOnError(err, "failed to remove temp file")
+
+	return fn
 }

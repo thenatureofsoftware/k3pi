@@ -27,10 +27,12 @@ import (
 	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/kubernetes-sigs/yaml"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 // installCmd represents the install command
@@ -43,38 +45,55 @@ var installCmd = &cobra.Command{
 
 		var bytes []byte
 		var err error
+
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeCharDevice) == 0 {
 			//fmt.Println("data is being piped to stdin")
 			bytes, err = ioutil.ReadAll(os.Stdin)
 		} else {
 			if fn == "" {
-				fmt.Println("Error: must specify --filename|-f")
-				os.Exit(1)
+				misc.ErrorExitWithMessage("must specify --filename|-f")
 			}
 			bytes, err = ioutil.ReadFile(fn)
 		}
-		misc.CheckError(err, "error reading input file")
+		misc.PanicOnError(err, "error reading input file")
 
 		nodes := []*pkg.Node{}
 		err = yaml.Unmarshal(bytes, &nodes)
-		misc.CheckError(err, "error parsing nodes from file")
+		misc.ExitOnError(err, "error parsing nodes from file")
 
 		if len(nodes) == 0 {
-			fmt.Println("No nodes found in file")
-			return
+			misc.ErrorExitWithMessage("No nodes found in file")
 		}
 
-		sshKeys := viper.GetStringSlice("ssh-key")
+		sshKeys := viper.GetStringSlice("install-ssh-key")
 		server := viper.GetString("server")
 		token := viper.GetString("token")
+		dryRun := viper.GetBool("dry-run")
 
-		err = cmd2.Install(nodes, sshKeys, server, token, true)
+		if len(sshKeys) == 0 {
 
-		if err != nil {
-			fmt.Printf("Error: %s\n", err)
-			os.Exit(1)
+			misc.ErrorExitWithMessage("at least one ssh key is required")
+
+		} else if len(sshKeys) == 1 && sshKeys[0] == cmd2.DefaultSSHAuthorizedKey {
+
+			idRsaPubFile, err := homedir.Expand(cmd2.DefaultSSHAuthorizedKey)
+			msg := fmt.Sprintf("failed to read default ssh public key: %s", cmd2.DefaultSSHAuthorizedKey)
+			misc.ExitOnError(err, msg)
+
+			f, err := os.Open(idRsaPubFile)
+			defer f.Close()
+			misc.ExitOnError(err, msg)
+
+			b, err := ioutil.ReadAll(f)
+			misc.ExitOnError(err, msg)
+
+			key := strings.Split(strings.TrimSpace(string(b)), " ")
+			sshKeys = []string{fmt.Sprintf("%s %s", key[0], key[1])}
 		}
+
+		err = cmd2.Install(nodes, sshKeys, server, token, dryRun)
+		misc.ExitOnError(err)
 	},
 }
 
@@ -85,10 +104,11 @@ func init() {
 	installCmd.Flags().Lookup("filename").NoOptDefVal = ""
 	installCmd.Flags().StringP("server", "s", "", "ip address or hostname of the server node")
 	installCmd.Flags().StringP("token", "t", "", "token or cluster secret for joining a server")
-	installCmd.Flags().StringSlice("ssh-key", []string{}, "ssh authorized key that should be added to the rancher user")
+
+	installCmd.Flags().StringSliceP("ssh-key", "k", []string{cmd2.DefaultSSHAuthorizedKey}, "ssh authorized key that should be added to the rancher user")
 	_ = viper.BindPFlag("dry-run", installCmd.Flags().Lookup("dry-run"))
 	_ = viper.BindPFlag("filename", installCmd.Flags().Lookup("filename"))
 	_ = viper.BindPFlag("server", installCmd.Flags().Lookup("server"))
-	_ = viper.BindPFlag("ssh-key", installCmd.Flags().Lookup("ssh-key"))
+	_ = viper.BindPFlag("install-ssh-key", installCmd.Flags().Lookup("ssh-key"))
 	_ = viper.BindPFlag("token", installCmd.Flags().Lookup("token"))
 }

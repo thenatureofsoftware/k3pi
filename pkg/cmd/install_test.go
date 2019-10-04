@@ -54,25 +54,29 @@ func TestMakeInstaller(t *testing.T) {
 	server.Node.Address = "192.168.1.10"
 
 	agentAddresses := []string{"192.168.1.11", "192.168.1.12", "192.168.1.13"}
-	var agents []pkg.Target
+	var agents pkg.Targets
 	for _, v := range agentAddresses {
 		agent := node
 		agent.Address = v
-		agents = append(agents, pkg.Target{
+		agents = append(agents, &pkg.Target{
 			SSHAuthorizedKeys: []string{},
 			Node:              &agent,
 		})
 	}
 
-	task := &InstallTask{
+	task := &pkg.InstallTask{
 		DryRun: false,
 		Server: &server,
-		Agents: &agents,
+		Agents: agents,
 	}
-	installers := MakeInstallers(task)
+
+	resourceDir := MakeResourceDir(task)
+	defer os.RemoveAll(resourceDir)
+
+	installers := MakeInstallers(task, resourceDir)
 
 	want := 4
-	if count := len(*installers); count != want {
+	if count := len(installers); count != want {
 		t.Errorf("expected %d installers, got %d", want, count)
 	}
 }
@@ -81,7 +85,7 @@ func TestInstaller_Install(t *testing.T) {
 	t.Skip("manual test")
 	node := &pkg.Node{}
 	err := yaml.Unmarshal([]byte(nodeYaml), node)
-	misc.CheckError(err, "failed to load node from yaml string")
+	misc.PanicOnError(err, "failed to load node from yaml string")
 
 	node.Address = "192.168.1.128"
 	node.Hostname = "k3pi-1"
@@ -93,18 +97,18 @@ func TestInstaller_Install(t *testing.T) {
 		Node:     node,
 	}
 
-	task := &InstallTask{
+	task := &pkg.InstallTask{
 		DryRun: false,
 		Server: &server,
-		Agents: &[]pkg.Target{},
+		Agents: pkg.Targets{},
 	}
 
 	resourceDir := MakeResourceDir(task)
 	defer os.RemoveAll(resourceDir)
 
-	installer := makeInstaller(task, &server, false)
+	installer := makeInstaller(task, &server, resourceDir, false)
 
-	_ = installer.Install(resourceDir)
+	_ = installer.Install()
 }
 
 func TestSelectServerAndAgents_No_Match(t *testing.T) {

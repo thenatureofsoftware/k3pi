@@ -71,7 +71,7 @@ func TestLoadPublicKey(t *testing.T) {
 func TestRunCommand(t *testing.T) {
 	t.Skip("manual test")
 	settings := &Settings{User: "tnos", KeyPath: "~/.ssh/id_rsa", Port: "22"}
-	config, closeHandler := NewClientConfig(settings)
+	config, closeHandler, _ := NewClientConfig(settings)
 
 	defer closeHandler()
 

@@ -34,9 +34,11 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 var checkSumFileTemplate = "sha256sum-%s.txt"
+const DefaultSSHAuthorizedKey = "~/.ssh/id_rsa.pub"
 
 type installer struct {
 	resourceDir     string
@@ -46,33 +48,34 @@ type installer struct {
 }
 
 func (ins *installer) Install() error {
-	sshConfig, sshAgentCloseHandler := ssh.NewClientConfigFor(ins.target.Node)
+	sshConfig, sshAgentCloseHandler, err := ssh.NewClientConfigFor(ins.target.Node)
+	misc.PanicOnError(err, "failed to create ssh config")
 	defer sshAgentCloseHandler()
 
 	address := ins.target.Node.Address
 	sshAddress := fmt.Sprintf("%s:%d", address, 22)
 
 	scpClient := scp.NewClient(sshAddress, sshConfig)
-	err := scpClient.Connect()
-	misc.CheckError(err, fmt.Sprintf("scp client failed to connect to %s", address))
+	err = scpClient.Connect()
+	misc.PanicOnError(err, fmt.Sprintf("scp client failed to connect to %s", address))
 
 	imageFile, err := os.Open(ins.target.GetImageFilePath(ins.resourceDir))
-	misc.CheckError(err, "failed to open image file")
+	misc.PanicOnError(err, "failed to open image file")
 	defer imageFile.Close()
 	stat, err := imageFile.Stat()
-	misc.CheckError(err, "failed to get file info")
+	misc.PanicOnError(err, "failed to get file info")
 
 	err = scpClient.Copy(bufio.NewReader(imageFile), fmt.Sprintf("~/%s", ins.target.GetImageFilename()), "0655", stat.Size())
-	misc.CheckError(err, "failed to copy image file")
+	misc.PanicOnError(err, "failed to copy image file")
 
 	// It's strange but we need to close and open for each file
 	_ = scpClient.Session.Close()
 	err = scpClient.Connect()
-	misc.CheckError(err, fmt.Sprintf("scp client failed to connect to %s", address))
+	misc.PanicOnError(err, fmt.Sprintf("scp client failed to connect to %s", address))
 	defer scpClient.Session.Close()
 
 	err = scpClient.Copy(bytes.NewReader(*ins.config), fmt.Sprintf("~/%s", "config.yaml"), "0655", int64(len(*ins.config)))
-	misc.CheckError(err, "failed to copy config file")
+	misc.PanicOnError(err, "failed to copy config file")
 
 	ctx := &pkg.CmdOperatorCtx{
 		Address:         sshAddress,
@@ -81,17 +84,19 @@ func (ins *installer) Install() error {
 	}
 
 	operator, err := ins.operatorFactory.Create(ctx)
-	misc.CheckError(err, fmt.Sprintf("failed to connect to %s", ctx.Address))
+	misc.PanicOnError(err, fmt.Sprintf("failed to connect to %s", ctx.Address))
 
 	result, err := operator.Execute(fmt.Sprintf("sudo tar zxvf %s --strip-components=1 -C /", ins.target.GetImageFilename()))
 	if err2 := errors.Wrap(err, fmt.Sprintf("failed to extract %s, result:\n %v", ins.target.GetImageFilename(), result)); err2 != nil {
 		return err2
 	}
 
-	result, err = operator.Execute("sudo cp config.yaml /k3os/system/config.yaml && sudo sync && sudo reboot -f")
-	if err2 := errors.Wrap(err, fmt.Sprintf("failed to install config and reboot:\n %v", result)); err2 != nil {
+	result, err = operator.Execute("sudo cp config.yaml /k3os/system/config.yaml")
+	if err2 := errors.Wrap(err, fmt.Sprintf("failed to install config:\n %v", result)); err2 != nil {
 		return err2
 	}
+
+	_, _ = operator.Execute("sudo sync && sudo reboot -f")
 
 	return nil
 }
@@ -111,10 +116,10 @@ func MakeInstallers(task *pkg.InstallTask, resourceDir string) pkg.Installers {
 
 func MakeResourceDir(task *pkg.InstallTask) string {
 	home, err := homedir.Dir()
-	misc.CheckError(err, "failed to resolve home directory")
+	misc.PanicOnError(err, "failed to resolve home directory")
 
 	resourceDir, err := ioutil.TempDir(home, ".k3pi-")
-	misc.CheckError(err, "failed to create resource directory")
+	misc.PanicOnError(err, "failed to create resource directory")
 
 	images := make(map[string]string)
 	images[task.Server.GetImageFilename()] = fmt.Sprintf(checkSumFileTemplate, task.Server.Node.GetArch())
@@ -132,7 +137,7 @@ func MakeResourceDir(task *pkg.InstallTask) string {
 			CheckSumUrl:      fmt.Sprintf(url, checkSumFile),
 		}
 		err := misc.DownloadAndVerify(download)
-		misc.CheckError(err, "failed to create resource directory")
+		misc.PanicOnError(err, "failed to create resource directory")
 	}
 
 	return resourceDir
@@ -149,7 +154,7 @@ func makeInstaller(task *pkg.InstallTask, target *pkg.Target, resourceDir string
 		configYaml, err = config.NewAgentConfig("", target)
 	}
 
-	misc.CheckError(err, "failed to create server installer")
+	misc.PanicOnError(err, "failed to create server installer")
 
 	cmdOperatorFactory := &pkg.CmdOperatorFactory{}
 	if task.DryRun {
@@ -170,17 +175,17 @@ func makeInstaller(task *pkg.InstallTask, target *pkg.Target, resourceDir string
 func Install(nodes pkg.Nodes, sshKeys []string, serverId string, token string, dryRun bool) error {
 
 	serverNode, agentNodes, err := SelectServerAndAgents(nodes, serverId)
-	misc.CheckError(err, "failed to resolve server and agents")
+	misc.PanicOnError(err, "failed to resolve server and agents")
 
 	if serverNode != nil {
-		fmt.Printf("server:\t%s\n", serverNode.Address)
+		misc.Info(fmt.Sprintf("Server:\t%s", serverNode.Address))
 	} else {
 		if len(token) == 0 {
 			return fmt.Errorf("no server selected and no join token")
 		}
 	}
 
-	fmt.Printf("agents:\t%s\n", agentNodes.IPAddresses())
+	misc.Info(fmt.Sprintf("Agents:\t%s", agentNodes.IPAddresses()))
 
 	var serverTarget *pkg.Target
 	agentTargets := agentNodes.Targets(sshKeys)
@@ -206,6 +211,32 @@ func Install(nodes pkg.Nodes, sshKeys []string, serverId string, token string, d
 		return err
 	}
 
+	if serverNode != nil && ! dryRun {
+		if err = misc.WaitForNode(serverNode, nil, time.Second*60); err == nil {
+
+			fmt.Printf("Waiting for kubeconfig ... ")
+			fn := misc.CreateTempFileName(".", "k3s-*.yaml")
+
+			for i := 0; i < 6; i++ {
+				err := misc.CopyKubeconfig(fn, serverNode)
+				if err != nil {
+					fmt.Printf("%s\n", err)
+					time.Sleep(time.Second*15)
+				} else {
+					fmt.Printf(" OK\n")
+					fmt.Printf(" Saved to: %s\n", fn)
+					break
+				}
+			}
+			if err != nil {
+				fmt.Printf(" Failed\n")
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -219,14 +250,21 @@ func runInstall(installers pkg.Installers) error {
 	doneChan := make(chan installResult)
 
 	for i := 0; i < 5; i++ {
-		go func() {
+		go func(installChan <- chan pkg.Installer, num int) {
+			//fmt.Printf("\r%s", strings.Repeat(" ", 35))
 			installer := <-installChan
+			fmt.Printf("Installer %d running ...\n", num)
 			err := installer.Install()
+			if err != nil {
+				fmt.Printf("Installer %d running ... Failed\n", num)
+			} else {
+				fmt.Printf("Installer %d running ... OK\n", num)
+			}
 			doneChan <- installResult{
 				installer: installer,
 				err:       err,
 			}
-		}()
+		}(installChan, i)
 	}
 
 	for _, installer := range installers {
@@ -242,8 +280,11 @@ func runInstall(installers pkg.Installers) error {
 	}
 
 	if len(installErrors) > 0 {
+		//fmt.Printf("\r%s", strings.Repeat(" ", 35))
+		fmt.Println("Install failed with errors")
 		return fmt.Errorf("install errors: %s", installErrors)
 	} else {
+		fmt.Println("Install OK")
 		return nil
 	}
 }

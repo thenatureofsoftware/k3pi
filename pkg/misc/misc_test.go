@@ -36,5 +36,5 @@ func TestCheckError_Should_Panic_On_Error(t *testing.T) {
 		}
 	}()
 
-	CheckError(fmt.Errorf("a wrapped error"), "wrapping error")
+	PanicOnError(fmt.Errorf("a wrapped error"), "wrapping error")
 }

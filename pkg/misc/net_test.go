@@ -22,7 +22,11 @@ THE SOFTWARE.
 package misc
 
 import (
+	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
+	"os"
 	"testing"
+	"time"
 )
 
 func TestHostScanner_ScanForAliveHosts_Localhost(t *testing.T) {
@@ -50,5 +54,38 @@ func TestHostScanner_ScanForAliveHosts_Invalid_Cidr(t *testing.T) {
 func verifyNumOfHosts(want int, found int, t *testing.T) {
 	if want != found {
 		t.Errorf("wanted: %d but found: %d alive hosts", want, found)
+	}
+}
+
+func TestWaitForNode(t *testing.T) {
+	t.Skip("manual test")
+	node := &pkg.Node{
+		Address: "192.168.1.111",
+	}
+	sshSettings := &ssh.Settings{
+		User:    "pirate",
+		KeyPath: "~/.ssh/id_rsa",
+		Port:    "22",
+	}
+	err := WaitForNode(node, sshSettings, time.Second*10)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestCopyKubeconfig(t *testing.T) {
+	//t.Skip("manual test")
+
+	node := &pkg.Node{
+		Address: "192.168.1.111",
+	}
+
+	fn := CreateTempFileName("", "k3s-*.yaml")
+	defer os.RemoveAll(fn)
+
+	err := CopyKubeconfig(fn, node)
+
+	if err != nil {
+		t.Error(err)
 	}
 }

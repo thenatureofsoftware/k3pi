@@ -25,8 +25,8 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/TheNatureOfSoftware/k3pi/pkg"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/mitchellh/go-homedir"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/terminal"
@@ -67,12 +67,12 @@ func LoadPublicKey(settings *Settings) (ssh.AuthMethod, func() error, error) {
 			return nil, noopCloseFunc, err
 		}
 
-		agent, close := sshAgent(keyPath + ".pub")
-		if agent != nil {
-			return agent, close, nil
+		sshAgent, sshAgentCloseHandler := sshAgent(keyPath + ".pub")
+		if sshAgent != nil {
+			return sshAgent, sshAgentCloseHandler, nil
 		}
 
-		defer close()
+		defer sshAgentCloseHandler()
 
 		fmt.Printf("Enter passphrase for '%s': ", keyPath)
 		bytePassword, err := terminal.ReadPassword(int(os.Stdin.Fd()))
@@ -88,9 +88,13 @@ func LoadPublicKey(settings *Settings) (ssh.AuthMethod, func() error, error) {
 }
 
 // Creates a new ssh client configuration.
-func NewClientConfig(settings *Settings) (*ssh.ClientConfig, func() error) {
+func NewClientConfig(settings *Settings) (*ssh.ClientConfig, func() error, error) {
+
 	authMethod, closeSSHAgent, err := LoadPublicKey(settings)
-	misc.CheckError(err, fmt.Sprintf("unable to load the ssh key from path %q", settings.GetKeyPath()))
+
+	if err != nil {
+		return nil, nil, errors.Wrap(err, fmt.Sprintf("unable to load the ssh key from path %q", settings.GetKeyPath()))
+	}
 
 	return &ssh.ClientConfig{
 		User: settings.User,
@@ -99,19 +103,24 @@ func NewClientConfig(settings *Settings) (*ssh.ClientConfig, func() error) {
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         time.Second * 3,
-	}, closeSSHAgent
+	}, closeSSHAgent, nil
 }
 
-func NewClientConfigFor(node *pkg.Node) (*ssh.ClientConfig, func() error) {
+func NewClientConfigFor(node *pkg.Node) (*ssh.ClientConfig, func() error, error) {
 	auth := node.Auth
 	if auth.Type == "ssh-key" {
-		return NewClientConfig(&Settings{
+		config, closeHandler, err := NewClientConfig(&Settings{
 			User:    auth.User,
 			KeyPath: auth.SSHKey,
 			Port:    "22",
 		})
+		if err != nil {
+			return nil, nil, err
+		}
+		return config, closeHandler, nil
 	} else {
-		return PasswordClientConfig(auth.User, auth.Password)
+		config, closeHandler := PasswordClientConfig(auth.User, auth.Password)
+		return config, closeHandler, nil
 	}
 }
 
@@ -159,7 +168,7 @@ func (s *cmdRunner) Execute(command string) (*pkg.Result, error) {
 
 	wg.Add(1)
 	go func() {
-		io.Copy(stdOutWriter, sessStdOut)
+		_, _ = io.Copy(stdOutWriter, sessStdOut)
 		wg.Done()
 	}()
 	sessStderr, err := sess.StderrPipe()
@@ -171,7 +180,7 @@ func (s *cmdRunner) Execute(command string) (*pkg.Result, error) {
 	stdErrWriter := io.MultiWriter(os.Stderr, &errorOutput)
 	wg.Add(1)
 	go func() {
-		io.Copy(stdErrWriter, sessStderr)
+		_, _ = io.Copy(stdErrWriter, sessStderr)
 		wg.Done()
 	}()
 
@@ -197,7 +206,7 @@ func (d dryRunCmdRunner) Close() error {
 }
 
 func (d dryRunCmdRunner) Execute(command string) (*pkg.Result, error) {
-	fmt.Printf("%s\n", command)
+	//fmt.Printf("%s\n", command)
 	return &pkg.Result{
 		StdOut: []byte("\n"),
 		StdErr: []byte{},
@@ -220,7 +229,9 @@ func NewCmdOperator(ctx *pkg.CmdOperatorCtx) (pkg.CmdOperator, error) {
 
 func NewDryRunCmdOperator(ctx *pkg.CmdOperatorCtx) (pkg.CmdOperator, error) {
 	client, err := ssh.Dial("tcp", ctx.Address, ctx.SSHClientConfig)
-	misc.CheckError(err, fmt.Sprintf("failed to connect to %s", ctx.Address))
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to connect to %s", ctx.Address))
+	}
 	defer client.Close()
 
 	return &dryRunCmdRunner{}, nil

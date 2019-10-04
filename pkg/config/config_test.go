@@ -139,14 +139,14 @@ auth:
 
 	node := &pkg.Node{}
 	err := yaml.Unmarshal([]byte(nodeYaml), node)
-	misc.CheckError(err, "failed to unmarshal node")
+	misc.PanicOnError(err, "failed to unmarshal node")
 	serverIp := "127.0.0.2"
 	configAsBytes, err := NewAgentConfig("", &pkg.Target{
 		SSHAuthorizedKeys: []string{"github:foobar"},
 		Node:              node,
 		ServerIP:          serverIp,
 	})
-	misc.CheckError(err, "failed to create agent config")
+	misc.PanicOnError(err, "failed to create agent config")
 	fmt.Println(string(*configAsBytes))
 }
 

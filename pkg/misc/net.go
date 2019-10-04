@@ -22,8 +22,12 @@ THE SOFTWARE.
 package misc
 
 import (
+	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"net"
 	"os/exec"
+	"time"
 )
 
 func hosts(cidr string) ([]string, error) {
@@ -117,4 +121,52 @@ func (h *hostScanner) ScanForAliveHosts(cidr string) (*[]string, error) {
 	}
 
 	return &aliveHosts, nil
+}
+
+func WaitForNode(node *pkg.Node, sshSettings *ssh.Settings, timeout time.Duration) error {
+
+	resolvedSSHSettings := resolveSSHSettings(sshSettings)
+
+	clientConfig, sshAgentCloseHandler, err := ssh.NewClientConfig(resolveSSHSettings(sshSettings))
+	PanicOnError(err, "failed to create ssh agent")
+	defer sshAgentCloseHandler()
+
+	ctx := &pkg.CmdOperatorCtx{
+		Address:         fmt.Sprintf("%s:%s", node.Address, resolvedSSHSettings.Port),
+		SSHClientConfig: clientConfig,
+		EnableStdOut:    false,
+	}
+
+	timeToStop := time.Now().Add(timeout)
+	for {
+		_, err := ssh.NewCmdOperator(ctx)
+		if err == nil {
+			break
+		} else if time.Now().After(timeToStop) {
+			return fmt.Errorf("timeout waiting for node: %s", node.Address)
+		}
+		time.Sleep(time.Second * 2)
+	}
+
+	return nil
+}
+
+func resolveSSHSettings(sshSettings *ssh.Settings) *ssh.Settings {
+	if sshSettings != nil {
+		return sshSettings
+	}
+	return &ssh.Settings{
+		User:    "rancher",
+		KeyPath: "~/.ssh/id_rsa",
+		Port:    "22",
+	}
+}
+
+func CopyKubeconfig(kubeconfigFile string, node *pkg.Node) error {
+	return exec.Command(
+		"scp",
+		"-o",
+		"StrictHostKeyChecking=no",
+		fmt.Sprintf("rancher@%s:/etc/rancher/k3s/k3s.yaml", node.Address),
+		kubeconfigFile).Run()
 }
