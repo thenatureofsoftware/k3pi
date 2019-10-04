@@ -220,7 +220,6 @@ func Install(nodes pkg.Nodes, sshKeys []string, serverId string, token string, d
 			for i := 0; i < 6; i++ {
 				err := misc.CopyKubeconfig(fn, serverNode)
 				if err != nil {
-					fmt.Printf("%s\n", err)
 					time.Sleep(time.Second*15)
 				} else {
 					fmt.Printf(" OK\n")

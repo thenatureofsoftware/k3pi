@@ -16,3 +16,4 @@
 # k3pi specific
 nodes.yaml
 k3pi
+k3s-*.yaml
