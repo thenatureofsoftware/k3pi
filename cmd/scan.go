@@ -36,19 +36,28 @@ import (
 // scanCmd represents the list command
 var scanCmd = &cobra.Command{
 	Use:   "scan",
-	Short: "Scans for members of the Raspberries",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Scans the network for ARM devices",
+	Long: `Scans the network for ARM devices with ssh enabled. The scan can use one SSH key
+and multiple username and password combinations. Examples:
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	# Scan using default SSH key in ~/.ssh/id_rsa, user root and CIDR 192.168.1.0/24
+	$ k3pi scan
+
+	# Scan using default SSH key in ~/.ssh/id_rsa and user foo
+	$ k3pi scan --user foo --cidr 192.168.1.0/24
+
+	# Scan using username and password
+	$ k3pi scan --auth foo:bar --auth root:notsosecret
+
+	# Scan filtering on hostname
+	$ k3pi scan --substr pearl
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		scanRequest := &cmd2.ScanRequest{
-			Cidr:              viper.GetString("cidr"),
-			HostnameSubString: viper.GetString("substr"),
+			Cidr:              viper.GetString(ParamCIDR),
+			HostnameSubString: viper.GetString(ParamHostnameSubstring),
 			SSHSettings:       sshSettings(),
-			UserCredentials:   credentials(viper.GetStringSlice("auth")),
+			UserCredentials:   credentials(viper.GetStringSlice(ParamAuth)),
 		}
 		cmdOpFactory := &pkg.CmdOperatorFactory{Create: ssh.NewCmdOperator}
 		nodes, err := cmd2.ScanForRaspberries(scanRequest, misc.NewHostScanner(), cmdOpFactory)
@@ -75,21 +84,23 @@ func credentials(basicAuths []string) map[string]string {
 
 func init() {
 	rootCmd.AddCommand(scanCmd)
-	scanCmd.Flags().String("user", "root", "username for ssh login")
-	scanCmd.Flags().String("ssh-key", "~/.ssh/id_rsa", "ssh key to use for remote login")
-	scanCmd.Flags().Int("ssh-port", 22, "port on which to connect for ssh")
-	scanCmd.Flags().String("cidr", "192.168.1.0/24", "CIDR to scan for members")
-	scanCmd.Flags().String("substr", "", "Substring that should be part of hostname")
-	scanCmd.Flags().StringSliceP("auth", "a", []string{}, "Username and password separated with ':' for authentication")
-	_ = viper.BindPFlag("user", scanCmd.Flags().Lookup("user"))
-	_ = viper.BindPFlag("ssh-key", scanCmd.Flags().Lookup("ssh-key"))
-	_ = viper.BindPFlag("ssh-port", scanCmd.Flags().Lookup("ssh-port"))
-	_ = viper.BindPFlag("cidr", scanCmd.Flags().Lookup("cidr"))
-	_ = viper.BindPFlag("substr", scanCmd.Flags().Lookup("substr"))
-	_ = viper.BindPFlag("auth", scanCmd.Flags().Lookup("auth"))
+	scanCmd.Flags().String(ParamUser, "root", "username for ssh login")
+	scanCmd.Flags().String(ParamSSHKey, "~/.ssh/id_rsa", "ssh key to use for remote login")
+	scanCmd.Flags().Int(ParamSSHPort, 22, "port on which to connect for ssh")
+	scanCmd.Flags().String(ParamCIDR, "192.168.1.0/24", "CIDR to scan for members")
+	scanCmd.Flags().String(ParamHostnameSubstring, "", "Substring that should be part of hostname")
+	scanCmd.Flags().StringSliceP(ParamAuth, "a", []string{}, "Username and password separated with ':' for authentication")
+	_ = viper.BindPFlag(ParamUser, scanCmd.Flags().Lookup(ParamUser))
+	_ = viper.BindPFlag(ParamSSHKey, scanCmd.Flags().Lookup(ParamSSHKey))
+	_ = viper.BindPFlag(ParamSSHPort, scanCmd.Flags().Lookup(ParamSSHPort))
+	_ = viper.BindPFlag(ParamCIDR, scanCmd.Flags().Lookup(ParamCIDR))
+	_ = viper.BindPFlag(ParamHostnameSubstring, scanCmd.Flags().Lookup(ParamHostnameSubstring))
+	_ = viper.BindPFlag(ParamAuth, scanCmd.Flags().Lookup(ParamAuth))
 }
 
 func sshSettings() *ssh.Settings {
-	return &ssh.Settings{KeyPath: viper.GetString("ssh-key"),
-		User: viper.GetString("user"), Port: viper.GetString("ssh-port")}
+	return &ssh.Settings{
+		KeyPath: viper.GetString(ParamSSHKey),
+		User:    viper.GetString(ParamUser),
+		Port:    viper.GetString(ParamSSHPort)}
 }

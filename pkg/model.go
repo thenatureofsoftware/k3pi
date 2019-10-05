@@ -27,7 +27,9 @@ import (
 	"os"
 )
 
-var imageFilenameTmpl = "k3os-rootfs-%s.tar.gz"
+const ( ImageFilenameTmpl = "k3os-rootfs-%s.tar.gz" )
+
+type SSHKeys []string
 
 // The stdin and stdout from executing a command.
 type Result struct {
@@ -87,6 +89,14 @@ func (nodes *Nodes) IPAddresses() []string {
 	return ipAddresses
 }
 
+func (nodes *Nodes) Info(collect func(*Node) string) []string {
+	var info []string
+	for _, v := range *nodes {
+		info = append(info, collect(v))
+	}
+	return info
+}
+
 type Auth struct {
 	Type     string `json:"type"`
 	User     string `json:"user"`
@@ -101,7 +111,7 @@ type Target struct {
 }
 
 func (target *Target) GetImageFilename() string {
-	return fmt.Sprintf(imageFilenameTmpl, target.Node.GetArch())
+	return fmt.Sprintf(ImageFilenameTmpl, target.Node.GetArch())
 }
 
 func (target *Target) GetImageFilePath(resourceDir string) string {
@@ -134,4 +144,12 @@ type InstallTask struct {
 	DryRun bool
 	Server *Target
 	Agents Targets
+}
+
+type HostnameSpec struct {
+	Pattern, Prefix string
+}
+
+func (h *HostnameSpec) GetHostname(index int) string {
+	return fmt.Sprintf(h.Pattern, h.Prefix, index)
 }

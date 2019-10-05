@@ -39,16 +39,30 @@ import (
 var installCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Installs k3os on selected nodes",
-	Long:  ``,
+	Long:  `Installs k3os on ARM devices, should be combined with the scan command.
+
+	IMPORTANT! This will overwrite your existing installation.
+	
+	Examples:
+	Scan and install, confirm the install using --yes
+	$ k3pi scan <scan args> | k3pi install --yes <install args>
+
+	You should always run the install as a dry run first
+	$ k3pi scan <scan args> | k3pi install <install args> --dry-run
+
+	Installs k3os on all nodes in the file and selects <server ip> as server
+	$ k3pi install --filename ./nodes.yaml --server <server ip>
+
+	$ Installs k3os on all nodes as agents joining an existing server (server is not in nodes file)
+	k3pi install --filename ./nodes.yaml -t <token|secret> --server <server ip>
+`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fn := viper.GetString("filename")
+		fn := viper.GetString(ParamFilename)
 
 		var bytes []byte
 		var err error
 
-		stat, _ := os.Stdin.Stat()
-		if (stat.Mode() & os.ModeCharDevice) == 0 {
-			//fmt.Println("data is being piped to stdin")
+		if misc.DataPipedIn() {
 			bytes, err = ioutil.ReadAll(os.Stdin)
 		} else {
 			if fn == "" {
@@ -66,10 +80,15 @@ var installCmd = &cobra.Command{
 			misc.ErrorExitWithMessage("No nodes found in file")
 		}
 
-		sshKeys := viper.GetStringSlice("install-ssh-key")
-		server := viper.GetString("server")
-		token := viper.GetString("token")
-		dryRun := viper.GetBool("dry-run")
+		sshKeys := viper.GetStringSlice(ParamSSHKeyInstallBindKey)
+		server := viper.GetString(ParamServer)
+		token := viper.GetString(ParamToken)
+		dryRun := viper.GetBool(ParamDryRun)
+		hostnameSpec := &pkg.HostnameSpec{
+			Pattern: viper.GetString(ParamHostnamePattern),
+			Prefix:  viper.GetString(ParamHostnamePrefix),
+		}
+
 
 		if len(sshKeys) == 0 {
 
@@ -92,23 +111,39 @@ var installCmd = &cobra.Command{
 			sshKeys = []string{fmt.Sprintf("%s %s", key[0], key[1])}
 		}
 
-		err = cmd2.Install(nodes, sshKeys, server, token, dryRun)
+		installArgs := &cmd2.InstallArgs{
+			Nodes:        nodes,
+			SSHKeys:      sshKeys,
+			Token:        token,
+			ServerID:     server,
+			HostnameSpec: hostnameSpec,
+			DryRun:       dryRun,
+			Confirmed: viper.GetBool(ParamConfirmInstall),
+		}
+		err = cmd2.Install(installArgs)
 		misc.ExitOnError(err)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	installCmd.Flags().Bool("dry-run", false, "if true will print the install commands but never run them")
-	installCmd.Flags().StringP("filename", "f", "", "YAML file with all nodes")
-	installCmd.Flags().Lookup("filename").NoOptDefVal = ""
-	installCmd.Flags().StringP("server", "s", "", "ip address or hostname of the server node")
-	installCmd.Flags().StringP("token", "t", "", "token or cluster secret for joining a server")
 
-	installCmd.Flags().StringSliceP("ssh-key", "k", []string{cmd2.DefaultSSHAuthorizedKey}, "ssh authorized key that should be added to the rancher user")
-	_ = viper.BindPFlag("dry-run", installCmd.Flags().Lookup("dry-run"))
-	_ = viper.BindPFlag("filename", installCmd.Flags().Lookup("filename"))
-	_ = viper.BindPFlag("server", installCmd.Flags().Lookup("server"))
-	_ = viper.BindPFlag("install-ssh-key", installCmd.Flags().Lookup("ssh-key"))
-	_ = viper.BindPFlag("token", installCmd.Flags().Lookup("token"))
+	installCmd.Flags().BoolP(ParamConfirmInstall, "y", false, "confirm the installation")
+	installCmd.Flags().Bool(ParamDryRun, false, "if true will run the install but not execute commands")
+	installCmd.Flags().String(ParamHostnamePattern, "%s%d", "hostname pattern, printf with %s and %d")
+	installCmd.Flags().String(ParamHostnamePrefix, "k3-node", "hostname prefix, (hostname = '<prefix><index>')")
+	installCmd.Flags().StringP(ParamFilename, "f", "", "scan output file with all nodes")
+	installCmd.Flags().StringP(ParamServer, "s", "", "ip address or hostname of the server node")
+	installCmd.Flags().StringP(ParamToken, "t", "", "token or cluster secret for joining a server")
+	installCmd.Flags().Lookup(ParamFilename).NoOptDefVal = ""
+
+	installCmd.Flags().StringSliceP(ParamSSHKey, "k", []string{cmd2.DefaultSSHAuthorizedKey}, "ssh authorized key that should be added to the rancher user")
+	_ = viper.BindPFlag(ParamDryRun, installCmd.Flags().Lookup(ParamDryRun))
+	_ = viper.BindPFlag(ParamConfirmInstall, installCmd.Flags().Lookup(ParamConfirmInstall))
+	_ = viper.BindPFlag(ParamFilename, installCmd.Flags().Lookup(ParamFilename))
+	_ = viper.BindPFlag(ParamServer, installCmd.Flags().Lookup(ParamServer))
+	_ = viper.BindPFlag(ParamSSHKeyInstallBindKey, installCmd.Flags().Lookup(ParamSSHKey))
+	_ = viper.BindPFlag(ParamToken, installCmd.Flags().Lookup(ParamToken))
+	_ = viper.BindPFlag(ParamHostnamePattern, installCmd.Flags().Lookup(ParamHostnamePattern))
+	_ = viper.BindPFlag(ParamHostnamePrefix, installCmd.Flags().Lookup(ParamHostnamePrefix))
 }

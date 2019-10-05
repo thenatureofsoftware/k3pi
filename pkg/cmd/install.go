@@ -33,11 +33,14 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"io/ioutil"
+	"net"
 	"os"
+	"strings"
 	"time"
 )
 
 var checkSumFileTemplate = "sha256sum-%s.txt"
+
 const DefaultSSHAuthorizedKey = "~/.ssh/id_rsa.pub"
 
 type installer struct {
@@ -105,7 +108,9 @@ func MakeInstallers(task *pkg.InstallTask, resourceDir string) pkg.Installers {
 
 	var installers pkg.Installers
 
-	installers = append(installers, makeInstaller(task, task.Server, resourceDir, true))
+	if task.Server != nil {
+		installers = append(installers, makeInstaller(task, task.Server, resourceDir, true))
+	}
 
 	for _, agent := range task.Agents {
 		installers = append(installers, makeInstaller(task, agent, resourceDir, false))
@@ -122,7 +127,9 @@ func MakeResourceDir(task *pkg.InstallTask) string {
 	misc.PanicOnError(err, "failed to create resource directory")
 
 	images := make(map[string]string)
-	images[task.Server.GetImageFilename()] = fmt.Sprintf(checkSumFileTemplate, task.Server.Node.GetArch())
+	if task.Server != nil {
+		images[task.Server.GetImageFilename()] = fmt.Sprintf(checkSumFileTemplate, task.Server.Node.GetArch())
+	}
 	for _, agent := range task.Agents {
 		images[agent.GetImageFilename()] = fmt.Sprintf(checkSumFileTemplate, agent.Node.GetArch())
 	}
@@ -171,32 +178,62 @@ func makeInstaller(task *pkg.InstallTask, target *pkg.Target, resourceDir string
 	}
 }
 
-// Installs k3os on all nodes.
-func Install(nodes pkg.Nodes, sshKeys []string, serverId string, token string, dryRun bool) error {
+type InstallArgs struct {
+	pkg.Nodes
+	pkg.SSHKeys
+	Token, ServerID string
+	*pkg.HostnameSpec
+	DryRun, Confirmed bool
+}
 
-	serverNode, agentNodes, err := SelectServerAndAgents(nodes, serverId)
+// Installs k3os on all nodes.
+func Install(args *InstallArgs) error {
+
+	generateHostname(args.Nodes, args.HostnameSpec)
+
+	serverNode, agentNodes, err := SelectServerAndAgents(args.Nodes, args.ServerID)
 	misc.PanicOnError(err, "failed to resolve server and agents")
 
+
 	if serverNode != nil {
-		misc.Info(fmt.Sprintf("Server:\t%s", serverNode.Address))
+		misc.Info(fmt.Sprintf("Server:\t%s (%s)", serverNode.Hostname, serverNode.Address))
 	} else {
-		if len(token) == 0 {
+		if len(args.Token) == 0 {
 			return fmt.Errorf("no server selected and no join token")
 		}
 	}
 
-	misc.Info(fmt.Sprintf("Agents:\t%s", agentNodes.IPAddresses()))
+	misc.Info(fmt.Sprintf("Agents:\t%s", agentNodes.Info(func(n *pkg.Node) string {
+		return fmt.Sprintf("%s (%s)", n.Hostname, n.Address)
+	})))
+
+	if ! args.Confirmed {
+		if misc.DataPipedIn() {
+			return fmt.Errorf("install needs to be confirmed (--yes|-y)")
+		}
+		fmt.Printf("Overwrire all nodes? (y/N): ")
+		var reply string
+		_, _ = fmt.Scanln(&reply)
+		if answer := strings.TrimSpace(strings.ToUpper(string(reply))); answer != "YES" && answer != "Y" {
+			return nil
+		}
+	}
 
 	var serverTarget *pkg.Target
-	agentTargets := agentNodes.Targets(sshKeys)
+	agentTargets := agentNodes.Targets(args.SSHKeys)
 
 	if serverNode != nil {
-		serverTarget = serverNode.GetTarget(sshKeys)
+		serverTarget = serverNode.GetTarget(args.SSHKeys)
 		agentTargets.SetServerIP(serverNode.Address)
+	} else {
+		serverIP := net.ParseIP(args.ServerID)
+		if serverIP == nil {
+			return fmt.Errorf("no server node found and --server '%s' is not a valid IP address", args.ServerID)
+		}
 	}
 
 	installTask := &pkg.InstallTask{
-		DryRun: dryRun,
+		DryRun: args.DryRun,
 		Server: serverTarget,
 		Agents: agentTargets,
 	}
@@ -211,7 +248,7 @@ func Install(nodes pkg.Nodes, sshKeys []string, serverId string, token string, d
 		return err
 	}
 
-	if serverNode != nil && ! dryRun {
+	if serverNode != nil && !args.DryRun {
 		if err = misc.WaitForNode(serverNode, nil, time.Second*60); err == nil {
 
 			fmt.Printf("Waiting for kubeconfig ... ")
@@ -220,7 +257,7 @@ func Install(nodes pkg.Nodes, sshKeys []string, serverId string, token string, d
 			for i := 0; i < 6; i++ {
 				err := misc.CopyKubeconfig(fn, serverNode)
 				if err != nil {
-					time.Sleep(time.Second*15)
+					time.Sleep(time.Second * 15)
 				} else {
 					fmt.Printf(" OK\n")
 					fmt.Printf(" Saved to: %s\n", fn)
@@ -239,6 +276,12 @@ func Install(nodes pkg.Nodes, sshKeys []string, serverId string, token string, d
 	return nil
 }
 
+func generateHostname(nodes pkg.Nodes, spec *pkg.HostnameSpec) {
+	for i, n := range nodes {
+		n.Hostname = spec.GetHostname(i + 1)
+	}
+}
+
 type installResult struct {
 	installer pkg.Installer
 	err       error
@@ -249,7 +292,7 @@ func runInstall(installers pkg.Installers) error {
 	doneChan := make(chan installResult)
 
 	for i := 0; i < 5; i++ {
-		go func(installChan <- chan pkg.Installer, num int) {
+		go func(installChan <-chan pkg.Installer, num int) {
 			//fmt.Printf("\r%s", strings.Repeat(" ", 35))
 			installer := <-installChan
 			fmt.Printf("Installer %d running ...\n", num)

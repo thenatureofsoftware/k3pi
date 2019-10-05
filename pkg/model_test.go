@@ -36,7 +36,7 @@ var node = &Node{
 
 func TestK3sTarget_GetImageFilename(t *testing.T) {
 	target := node.GetTarget([]string{})
-	if fn := target.GetImageFilename(); fn != fmt.Sprintf(imageFilenameTmpl, "arm64") {
+	if fn := target.GetImageFilename(); fn != fmt.Sprintf(ImageFilenameTmpl, "arm64") {
 		t.Error("wrong image filename")
 	}
 }
@@ -44,7 +44,7 @@ func TestK3sTarget_GetImageFilename(t *testing.T) {
 func TestK3sTarget_GetImageFilePath(t *testing.T) {
 	sep := string(os.PathSeparator)
 	target := node.GetTarget([]string{})
-	if fn := target.GetImageFilePath("/tmp/foo"); fn != "/tmp/foo"+sep+fmt.Sprintf(imageFilenameTmpl, "arm64") {
+	if fn := target.GetImageFilePath("/tmp/foo"); fn != "/tmp/foo"+sep+fmt.Sprintf(ImageFilenameTmpl, "arm64") {
 		t.Error("wrong image file path")
 	}
 }

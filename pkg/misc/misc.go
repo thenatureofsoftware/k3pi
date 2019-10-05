@@ -29,13 +29,18 @@ import (
 	"path/filepath"
 )
 
+func DataPipedIn() bool {
+	stat, _ := os.Stdin.Stat()
+	return (stat.Mode() & os.ModeCharDevice) == 0
+}
+
 func PanicOnError(err error, message string) {
 	if err != nil {
 		panic(errors.Wrap(err, message))
 	}
 }
 
-func ExitOnError(err error, message... string) {
+func ExitOnError(err error, message ...string) {
 	if err != nil {
 		if len(message) > 0 {
 			ErrorExitWithError(errors.Wrap(err, message[0]))
