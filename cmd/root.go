@@ -33,19 +33,15 @@ import (
 
 var cfgFile string
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "k3pi",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Short: "Install k3os on your favorite ARM device.",
+	Long: `Takes over the os installation and installs k3os on a set of ARM nodes.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Example:
+
+	$ k3pi scan | k3pi install --yes --server k3-node1
+`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

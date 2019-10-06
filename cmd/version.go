@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 The Nature of Software Nordic AB <lars@thenatureofsoftware.se>
+Copyright © 2019 Lars Mogren <lars@thenatureofsoftware.se>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,19 +21,26 @@ THE SOFTWARE.
 */
 package cmd
 
-const (
-	ParamDryRun               = "dry-run"
-	ParamFilename             = "filename"
-	ParamServer               = "server"
-	ParamToken                = "token"
-	ParamSSHKeyInstallBindKey = "install-ssh-key"
-	ParamUser                 = "user"
-	ParamSSHKey               = "ssh-key"
-	ParamSSHPort              = "ssh-port"
-	ParamCIDR                 = "cidr"
-	ParamHostnameSubstring    = "substr"
-	ParamAuth                 = "auth"
-	ParamHostnamePattern      = "hostname-pattern"
-    ParamHostnamePrefix      = "hostname-prefix"
-    ParamConfirmInstall = "yes"
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
 )
+
+var (
+	Version string = "dev"
+	GitCommit string
+)
+// versionCmd represents the version command
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version",
+
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("Version: %s\nGit Commit: %s\n", Version, GitCommit)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(versionCmd)
+}
