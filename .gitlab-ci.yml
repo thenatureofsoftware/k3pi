@@ -14,7 +14,7 @@ build:
 release:
   stage: release
   script:
-    - echo release
+    - scripts/make-release.sh
   only:
     refs:
       - master
