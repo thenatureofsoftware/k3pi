@@ -14,6 +14,7 @@ build:
 release:
   stage: release
   script:
+    - apt-get update && apt-get -y install jq
     - scripts/make-release.sh
   only:
     refs:
