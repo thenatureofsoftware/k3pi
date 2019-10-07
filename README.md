@@ -2,11 +2,21 @@
 
 Tool for installing [k3os](https://github.com/rancher/k3os) on your favorite ARM device.
 
-1. Start your ARM device with an OS image that has `ssh` enabled.
-  
-   For Raspberry Pi we recommend [HypriotOS](https://blog.hypriot.com/post/releasing-HypriotOS-1-11/). Install instructions can be found [here](https://github.com/hypriot/image-builder-rpi/releases).
+## Why
 
-2. Scan your network for all your devices that should be part [`k3s`](https://github.com/rancher/k3s) cluster.
+The easiest way to get started with [`k3s`](https://github.com/rancher/k3s) is probably by using
+[`k3d`](https://github.com/rancher/k3d) and Docker. If you wan't to run `k3s` on multiple nodes then the quickest way
+is to use Alex Elis [`k3sup`](https://github.com/alexellis/k3sup). But if you wan't to run an OS targeted for `k3s`
+like `k3OS` that's where this tool might come in handy.
+
+## Get started
+
+1. Boot your ARM device with an OS image that has `ssh` enabled.
+  
+   For Raspberry Pi we recommend [HypriotOS](https://blog.hypriot.com/post/releasing-HypriotOS-1-11/). Install
+   instructions can be found [here](https://github.com/hypriot/image-builder-rpi/releases).
+
+2. Scan your network for all your devices that should be part of the [`k3s`](https://github.com/rancher/k3s) cluster.
    
    ```shell script
    $ k3pi scan --auth pirate:hypriot --substr pearl
@@ -29,19 +39,21 @@ Tool for installing [k3os](https://github.com/rancher/k3os) on your favorite ARM
 ```
 $ k3pi scan -h
 Scans the network for ARM devices with ssh enabled. The scan can use one SSH key
-and multiple username and password combinations. Examples:
+and multiple username and password combinations.
 
- # Scan using default SSH key in ~/.ssh/id_rsa, user root and CIDR 192.168.1.0/24
- $ k3pi scan
+        Examples:
 
- # Scan using default SSH key in ~/.ssh/id_rsa and user foo
- $ k3pi scan --user foo --cidr 192.168.1.0/24
+        # Scan using default SSH key in ~/.ssh/id_rsa, user root and CIDR 192.168.1.0/24
+        $ k3pi scan
 
- # Scan using username and password
- $ k3pi scan --auth foo:bar --auth root:notsosecret
+        # Scan using default SSH key in ~/.ssh/id_rsa and user foo
+        $ k3pi scan --user foo --cidr 192.168.1.0/24
 
- # Scan filtering on hostname
- $ k3pi scan --substr pearl
+        # Scan using username and password
+        $ k3pi scan --auth foo:bar --auth root:notsosecret
+
+        # Scan filtering on hostname
+        $ k3pi scan --substr pearl
 
 Usage:
   k3pi scan [flags]
@@ -61,20 +73,21 @@ Flags:
 ```
 Installs k3os on ARM devices, should be combined with the scan command.
 
- IMPORTANT! This will overwrite your existing installation.
- 
- Examples:
- Scan and install, confirm the install using --yes
- $ k3pi scan <scan args> | k3pi install --yes <install args>
+        IMPORTANT! This will overwrite your existing installation.
+        
+        Examples:
+        
+        You should always run the install as a dry run first
+        $ k3pi scan <scan args> | k3pi install --yes <install args> --dry-run
+        
+        Scan and install, confirm the install using --yes
+        $ k3pi scan <scan args> | k3pi install --yes <install args>
 
- You should always run the install as a dry run first
- $ k3pi scan <scan args> | k3pi install <install args> --dry-run
+        Installs k3os on all nodes in the file and selects <server ip> as server
+        $ k3pi install --filename ./nodes.yaml --server <server ip>
 
- Installs k3os on all nodes in the file and selects <server ip> as server
- $ k3pi install --filename ./nodes.yaml --server <server ip>
-
- $ Installs k3os on all nodes as agents joining an existing server (server is not in nodes file)
- k3pi install --filename ./nodes.yaml -t <token|secret> --server <server ip>
+        $ Installs k3os on all nodes as agents joining an existing server (server is not in nodes file)
+        k3pi install --filename ./nodes.yaml -t <token|secret> --server <server ip>
 
 Usage:
   k3pi install [flags]

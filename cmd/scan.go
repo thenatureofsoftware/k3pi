@@ -38,7 +38,9 @@ var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Scans the network for ARM devices",
 	Long: `Scans the network for ARM devices with ssh enabled. The scan can use one SSH key
-and multiple username and password combinations. Examples:
+and multiple username and password combinations.
+
+	Examples:
 
 	# Scan using default SSH key in ~/.ssh/id_rsa, user root and CIDR 192.168.1.0/24
 	$ k3pi scan
