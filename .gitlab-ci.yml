@@ -1,0 +1,20 @@
+image: golang:1.13
+
+stages:
+  - build
+  - release
+
+build:
+  stage: buid
+  script: make
+  artifacts:
+    paths:
+      - bin
+
+release:
+  stage: release
+  script:
+    - echo release
+  only:
+    refs:
+      - master
