@@ -17,6 +17,6 @@ release:
     - apt-get update && apt-get -y install file jq
     - scripts/make-release.sh
   only:
-    refs:
-      - master
-      - tags
+    - /^(\d+\.)?(\d+\.)?(\*|\d+)$/
+  except:
+    - branches
