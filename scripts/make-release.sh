@@ -13,7 +13,7 @@ BASEDIR="$( cd -P "$( dirname "$SOURCE" )/.." >/dev/null 2>&1 && pwd )"
 function upload_artifact() {
   repo_id=${1}
   asset_file=${2}
-  echo "Uploading artifact $f to ${GITHUB_ORG}/${REPO_NAME} release v${RELEASE_VERSION} with id: ${repo_id}"
+  echo "Uploading artifact $f to ${GITHUB_ORG}/${REPO_NAME} release ${RELEASE_VERSION} with id: ${repo_id}"
 
   if [[ ! -f ${asset_file} ]]; then
     echo "file not found $f"
@@ -41,7 +41,7 @@ fi
 
 echo "Making release ${RELEASE_VERSION}"
 
-API_JSON=$(printf '{"tag_name": "v%s","target_commitish": "master","name": "v%s","body": "Release of version %s","draft": false,"prerelease": false}' $RELEASE_VERSION $RELEASE_VERSION $RELEASE_VERSION)
+API_JSON=$(printf '{"tag_name": "%s","target_commitish": "master","name": "%s","body": "Release of version %s","draft": false,"prerelease": false}' $RELEASE_VERSION $RELEASE_VERSION $RELEASE_VERSION)
 repo_id=$(curl --data "$API_JSON" -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/${GITHUB_ORG}/${REPO_NAME}/releases | jq -r '.id')
 
 if [[ "$repo_id" == "" ]]; then
