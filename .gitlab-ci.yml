@@ -5,7 +5,7 @@ stages:
   - release
 
 build:
-  stage: buid
+  stage: build
   script: make
   artifacts:
     paths:
