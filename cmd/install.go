@@ -44,11 +44,12 @@ var installCmd = &cobra.Command{
 	IMPORTANT! This will overwrite your existing installation.
 	
 	Examples:
+	
+	You should always run the install as a dry run first
+	$ k3pi scan <scan args> | k3pi install --yes <install args> --dry-run
+	
 	Scan and install, confirm the install using --yes
 	$ k3pi scan <scan args> | k3pi install --yes <install args>
-
-	You should always run the install as a dry run first
-	$ k3pi scan <scan args> | k3pi install <install args> --dry-run
 
 	Installs k3os on all nodes in the file and selects <server ip> as server
 	$ k3pi install --filename ./nodes.yaml --server <server ip>
