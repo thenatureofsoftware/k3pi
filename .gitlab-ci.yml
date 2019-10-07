@@ -19,3 +19,4 @@ release:
   only:
     refs:
       - master
+      - tags
