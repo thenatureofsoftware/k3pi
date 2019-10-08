@@ -6,7 +6,9 @@ stages:
 
 build:
   stage: build
-  script: make
+  script:
+    - 'ssh-keygen -b 2048 -t rsa -f ~/.ssh/id_rsa -q -N ""'
+    - make
   artifacts:
     paths:
       - bin
