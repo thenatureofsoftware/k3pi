@@ -74,7 +74,7 @@ func TestWaitForNode(t *testing.T) {
 }
 
 func TestCopyKubeconfig(t *testing.T) {
-	//t.Skip("manual test")
+	t.Skip("manual test")
 
 	node := &pkg.Node{
 		Address: "192.168.1.111",
