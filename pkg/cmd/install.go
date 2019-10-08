@@ -156,9 +156,9 @@ func makeInstaller(task *pkg.InstallTask, target *pkg.Target, resourceDir string
 	var err error
 
 	if server {
-		configYaml, err = config.NewServerConfig("", target)
+		configYaml, err = config.NewServerConfig(task.Templates.ServerTmpl, target)
 	} else {
-		configYaml, err = config.NewAgentConfig("", target)
+		configYaml, err = config.NewAgentConfig(task.Templates.AgentTmpl, target)
 	}
 
 	misc.PanicOnError(err, "failed to create server installer")
@@ -184,6 +184,7 @@ type InstallArgs struct {
 	Token, ServerID string
 	*pkg.HostnameSpec
 	DryRun, Confirmed bool
+	Templates         *pkg.ConfigTemplates
 }
 
 // Installs k3os on all nodes.
@@ -194,7 +195,6 @@ func Install(args *InstallArgs) error {
 	serverNode, agentNodes, err := SelectServerAndAgents(args.Nodes, args.ServerID)
 	misc.PanicOnError(err, "failed to resolve server and agents")
 
-
 	if serverNode != nil {
 		misc.Info(fmt.Sprintf("Server:\t%s (%s)", serverNode.Hostname, serverNode.Address))
 	} else {
@@ -203,11 +203,16 @@ func Install(args *InstallArgs) error {
 		}
 	}
 
+	token := args.Token
+	if len(token) == 0 {
+		token = misc.GenerateToken()
+	}
+
 	misc.Info(fmt.Sprintf("Agents:\t%s", agentNodes.Info(func(n *pkg.Node) string {
 		return fmt.Sprintf("%s (%s)", n.Hostname, n.Address)
 	})))
 
-	if ! args.Confirmed {
+	if !args.Confirmed {
 		if misc.DataPipedIn() {
 			return fmt.Errorf("install needs to be confirmed (--yes|-y)")
 		}
@@ -220,22 +225,24 @@ func Install(args *InstallArgs) error {
 	}
 
 	var serverTarget *pkg.Target
-	agentTargets := agentNodes.Targets(args.SSHKeys)
+	agentTargets := agentNodes.GetTargets(args.SSHKeys, token)
 
 	if serverNode != nil {
-		serverTarget = serverNode.GetTarget(args.SSHKeys)
+		serverTarget = serverNode.GetTarget(args.SSHKeys, token)
 		agentTargets.SetServerIP(serverNode.Address)
 	} else {
 		serverIP := net.ParseIP(args.ServerID)
 		if serverIP == nil {
 			return fmt.Errorf("no server node found and --server '%s' is not a valid IP address", args.ServerID)
 		}
+		agentTargets.SetServerIP(serverIP.String())
 	}
 
 	installTask := &pkg.InstallTask{
-		DryRun: args.DryRun,
-		Server: serverTarget,
-		Agents: agentTargets,
+		DryRun:    args.DryRun,
+		Server:    serverTarget,
+		Agents:    agentTargets,
+		Templates: args.Templates,
 	}
 
 	resourceDir := MakeResourceDir(installTask)

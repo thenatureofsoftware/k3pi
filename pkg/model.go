@@ -27,7 +27,9 @@ import (
 	"os"
 )
 
-const ( ImageFilenameTmpl = "k3os-rootfs-%s.tar.gz" )
+const (
+	ImageFilenameTmpl = "k3os-rootfs-%s.tar.gz"
+)
 
 type SSHKeys []string
 
@@ -74,8 +76,9 @@ func (n *Node) GetArch() string {
 	}
 }
 
-func (n *Node) GetTarget(sshAuthorizedKeys []string) *Target {
+func (n *Node) GetTarget(sshAuthorizedKeys []string, token string) *Target {
 	return &Target{
+		Token:             token,
 		SSHAuthorizedKeys: sshAuthorizedKeys,
 		Node:              n,
 	}
@@ -105,8 +108,8 @@ type Auth struct {
 }
 
 type Target struct {
+	ServerIP, Token   string
 	SSHAuthorizedKeys []string
-	ServerIP          string
 	Node              *Node
 }
 
@@ -126,10 +129,10 @@ func (targets *Targets) SetServerIP(serverIP string) {
 	}
 }
 
-func (nodes *Nodes) Targets(sshAuthorizedKeys []string) Targets {
+func (nodes *Nodes) GetTargets(sshAuthorizedKeys []string, token string) Targets {
 	var targets Targets
 	for _, node := range *nodes {
-		targets = append(targets, node.GetTarget(sshAuthorizedKeys))
+		targets = append(targets, node.GetTarget(sshAuthorizedKeys, token))
 	}
 	return targets
 }
@@ -140,10 +143,15 @@ type Installer interface {
 
 type Installers []Installer
 
+type ConfigTemplates struct {
+	ServerTmpl, AgentTmpl string
+}
+
 type InstallTask struct {
-	DryRun bool
-	Server *Target
-	Agents Targets
+	DryRun    bool
+	Server    *Target
+	Agents    Targets
+	Templates *ConfigTemplates
 }
 
 type HostnameSpec struct {

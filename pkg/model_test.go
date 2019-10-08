@@ -35,7 +35,7 @@ var node = &Node{
 }
 
 func TestK3sTarget_GetImageFilename(t *testing.T) {
-	target := node.GetTarget([]string{})
+	target := node.GetTarget([]string{}, "")
 	if fn := target.GetImageFilename(); fn != fmt.Sprintf(ImageFilenameTmpl, "arm64") {
 		t.Error("wrong image filename")
 	}
@@ -43,7 +43,7 @@ func TestK3sTarget_GetImageFilename(t *testing.T) {
 
 func TestK3sTarget_GetImageFilePath(t *testing.T) {
 	sep := string(os.PathSeparator)
-	target := node.GetTarget([]string{})
+	target := node.GetTarget([]string{}, "")
 	if fn := target.GetImageFilePath("/tmp/foo"); fn != "/tmp/foo"+sep+fmt.Sprintf(ImageFilenameTmpl, "arm64") {
 		t.Error("wrong image file path")
 	}
@@ -111,7 +111,7 @@ func TestNode_Marshal(t *testing.T) {
 func TestNodes_GetTargets(t *testing.T) {
 	nodes := Nodes{{}, {}, {}}
 	sshAuthorizedKeys := []string{}
-	targets := nodes.Targets(sshAuthorizedKeys)
+	targets := nodes.GetTargets(sshAuthorizedKeys, "")
 	expected := len(nodes)
 	actual := len(targets)
 	if actual != expected {
@@ -121,7 +121,7 @@ func TestNodes_GetTargets(t *testing.T) {
 
 func TestTargets_SetServerIP(t *testing.T) {
 	nodes := Nodes{{}, {}, {}}
-	targets := nodes.Targets([]string{})
+	targets := nodes.GetTargets([]string{}, "")
 	expected := "10.0.0.1"
 	targets.SetServerIP(expected)
 

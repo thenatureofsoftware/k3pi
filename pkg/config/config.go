@@ -40,18 +40,16 @@ ssh_authorized_keys:
 k3os:
   k3s_args:
   - server
-  - "--disable-agent"
   - "--bind-address"
   - "{{.Node.Address}}"
-  token: myclustersecret
+  token: {{.Token}}
   password: rancher
   dns_nameservers:
   - 8.8.8.8
   - 1.1.1.1
   ntp_servers:
   - 0.europe.pool.ntp.org
-  - 1.europe.pool.ntp.org
-`
+  - 1.europe.pool.ntp.org`
 
 var AgentConfigTmpl = `hostname: {{.Node.Hostname}}
 ssh_authorized_keys:
@@ -64,17 +62,14 @@ k3os:
   - "--node-ip"
   - "{{.Node.Address}}"
   server_url: https://{{.ServerIP}}:6443
-  token: myclustersecret
+  token: {{.Token}}
   password: rancher
   dns_nameservers:
   - 8.8.8.8
   - 1.1.1.1
   ntp_servers:
   - 0.europe.pool.ntp.org
-  - 1.europe.pool.ntp.org
-  environment:
-    INSTALL_K3S_VERSION: v0.9.1
-`
+  - 1.europe.pool.ntp.org`
 
 type CloudConfig struct {
 	Hostname          string   `json:"hostname"`

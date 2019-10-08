@@ -92,7 +92,6 @@ func TestNewServerConfig(t *testing.T) {
 		K3os: K3os{
 			K3sArgs: []string{
 				"server",
-				"--disable-agent",
 				"--bind-address",
 				"127.0.0.1",
 			},
