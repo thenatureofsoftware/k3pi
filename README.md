@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.com/TheNatureOfSoftware/k3pi/badges/master/pipeline.svg)](https://gitlab.com/TheNatureOfSoftware/k3pi/commits/master)
+
 # k3pi `/'ki 'pai/`
 
 Tool for installing [k3os](https://github.com/rancher/k3os) on your favorite ARM device.
