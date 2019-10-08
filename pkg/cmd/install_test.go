@@ -68,6 +68,7 @@ func TestMakeInstaller(t *testing.T) {
 		DryRun: false,
 		Server: &server,
 		Agents: agents,
+		Templates: &pkg.ConfigTemplates{},
 	}
 
 	resourceDir := MakeResourceDir(task)

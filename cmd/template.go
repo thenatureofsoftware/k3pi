@@ -23,25 +23,44 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/config"
 
 	"github.com/spf13/cobra"
 )
 
-var (
-	Version   string = "dev"
-	GitCommit string
-)
+var tmpl = `# k3OS server config template
+%s
+---
+# k3OS agent config template
+%s
+`
 
-// versionCmd represents the version command
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print the version",
+// templateCmd represents the template command
+var templateCmd = &cobra.Command{
+	Use:   "template",
+	Short: "Shows the k3OS config template",
+	Long: `Shows the k3OS config template for both server and agent.
 
+	Examples:
+
+	Shows both server and agent config template
+	$ k3pi template
+`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Version: %s\nGit Commit: %s\n", Version, GitCommit)
+		fmt.Printf(tmpl, config.ServerConfigTmpl, config.AgentConfigTmpl)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(templateCmd)
+
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// templateCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// templateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

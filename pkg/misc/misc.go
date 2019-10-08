@@ -22,6 +22,7 @@ THE SOFTWARE.
 package misc
 
 import (
+	"crypto/rand"
 	"fmt"
 	"github.com/pkg/errors"
 	"io/ioutil"
@@ -79,4 +80,10 @@ func CreateTempFileName(dir string, pattern string) string {
 	PanicOnError(err, "failed to remove temp file")
 
 	return fn
+}
+
+func GenerateToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }

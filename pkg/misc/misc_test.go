@@ -38,3 +38,11 @@ func TestCheckError_Should_Panic_On_Error(t *testing.T) {
 
 	PanicOnError(fmt.Errorf("a wrapped error"), "wrapping error")
 }
+
+func TestGenerateToken(t *testing.T) {
+	token := GenerateToken()
+	length := 64
+	if len(token) != length {
+		t.Errorf("tokens should have a length of %d", length)
+	}
+}

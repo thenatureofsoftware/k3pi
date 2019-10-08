@@ -2,10 +2,14 @@ Version := $(shell git describe --tags --dirty)
 GitCommit := $(shell git rev-parse HEAD)
 LDFLAGS := "-s -w -X github.com/TheNatureOfSoftware/k3pi/cmd.Version=$(Version) -X github.com/TheNatureOfSoftware/k3pi/cmd.GitCommit=$(GitCommit)"
 
-.PHONY: all
+.PHONY: all test dist
 
-.PHONY: dist
-dist:
+all: dist
+
+test:
+	go test ./...
+
+dist: test
 	mkdir -p bin
 	CGO_ENABLED=0 GOOS=linux go build -ldflags $(LDFLAGS) -a -installsuffix cgo -o bin/k3pi
 	CGO_ENABLED=0 GOOS=darwin go build -ldflags $(LDFLAGS) -a -installsuffix cgo -o bin/k3pi-darwin

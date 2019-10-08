@@ -34,6 +34,8 @@ const (
 	ParamHostnameSubstring    = "substr"
 	ParamAuth                 = "auth"
 	ParamHostnamePattern      = "hostname-pattern"
-    ParamHostnamePrefix      = "hostname-prefix"
-    ParamConfirmInstall = "yes"
+	ParamHostnamePrefix       = "hostname-prefix"
+	ParamConfirmInstall       = "yes"
+	ParamServerConfigTmpl     = "server-cfg-tmpl"
+	ParamAgentConfigTmpl      = "agent-cfg-tmpl"
 )

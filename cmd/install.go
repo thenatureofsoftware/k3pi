@@ -39,7 +39,7 @@ import (
 var installCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Installs k3os on selected nodes",
-	Long:  `Installs k3os on ARM devices, should be combined with the scan command.
+	Long: `Installs k3os on ARM devices, should be combined with the scan command.
 
 	IMPORTANT! This will overwrite your existing installation.
 	
@@ -90,6 +90,8 @@ var installCmd = &cobra.Command{
 			Prefix:  viper.GetString(ParamHostnamePrefix),
 		}
 
+		serverConfigTmpl := loadTemplateFile(viper.GetString(ParamServerConfigTmpl))
+		agentConfigTmpl := loadTemplateFile(viper.GetString(ParamAgentConfigTmpl))
 
 		if len(sshKeys) == 0 {
 
@@ -119,11 +121,25 @@ var installCmd = &cobra.Command{
 			ServerID:     server,
 			HostnameSpec: hostnameSpec,
 			DryRun:       dryRun,
-			Confirmed: viper.GetBool(ParamConfirmInstall),
+			Confirmed:    viper.GetBool(ParamConfirmInstall),
+			Templates: &pkg.ConfigTemplates{
+				ServerTmpl: serverConfigTmpl,
+				AgentTmpl:  agentConfigTmpl,
+			},
 		}
 		err = cmd2.Install(installArgs)
 		misc.ExitOnError(err)
 	},
+}
+
+func loadTemplateFile(configTmplFn string) string {
+	if len(configTmplFn) != 0 {
+		b, err := ioutil.ReadFile(configTmplFn)
+		misc.PanicOnError(err, fmt.Sprintf("error reading template file: %s", configTmplFn))
+		return string(b)
+	} else {
+		return ""
+	}
 }
 
 func init() {
@@ -132,11 +148,13 @@ func init() {
 	installCmd.Flags().BoolP(ParamConfirmInstall, "y", false, "confirm the installation")
 	installCmd.Flags().Bool(ParamDryRun, false, "if true will run the install but not execute commands")
 	installCmd.Flags().String(ParamHostnamePattern, "%s%d", "hostname pattern, printf with %s and %d")
-	installCmd.Flags().String(ParamHostnamePrefix, "k3-node", "hostname prefix, (hostname = '<prefix><index>')")
+	installCmd.Flags().String(ParamHostnamePrefix, "k3s-node", "hostname prefix, (hostname = '<prefix><index>')")
 	installCmd.Flags().StringP(ParamFilename, "f", "", "scan output file with all nodes")
 	installCmd.Flags().StringP(ParamServer, "s", "", "ip address or hostname of the server node")
 	installCmd.Flags().StringP(ParamToken, "t", "", "token or cluster secret for joining a server")
 	installCmd.Flags().Lookup(ParamFilename).NoOptDefVal = ""
+	installCmd.Flags().String(ParamServerConfigTmpl, "", "server k3OS config.yaml template file")
+	installCmd.Flags().String(ParamAgentConfigTmpl, "", "agent k3OS config.yaml template file")
 
 	installCmd.Flags().StringSliceP(ParamSSHKey, "k", []string{cmd2.DefaultSSHAuthorizedKey}, "ssh authorized key that should be added to the rancher user")
 	_ = viper.BindPFlag(ParamDryRun, installCmd.Flags().Lookup(ParamDryRun))
@@ -147,4 +165,6 @@ func init() {
 	_ = viper.BindPFlag(ParamToken, installCmd.Flags().Lookup(ParamToken))
 	_ = viper.BindPFlag(ParamHostnamePattern, installCmd.Flags().Lookup(ParamHostnamePattern))
 	_ = viper.BindPFlag(ParamHostnamePrefix, installCmd.Flags().Lookup(ParamHostnamePrefix))
+	_ = viper.BindPFlag(ParamServerConfigTmpl, installCmd.Flags().Lookup(ParamServerConfigTmpl))
+	_ = viper.BindPFlag(ParamAgentConfigTmpl, installCmd.Flags().Lookup(ParamAgentConfigTmpl))
 }
