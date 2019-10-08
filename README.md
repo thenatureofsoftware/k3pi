@@ -2,12 +2,12 @@
 
 # k3pi `/'ki 'pai/`
 
-Tool for installing [k3os](https://github.com/rancher/k3os) on your favorite ARM device.
+Tool for installing [`k3OS`](https://github.com/rancher/k3os) on your favorite ARM device.
 
 ## Why
 
 The easiest way to get started with [`k3s`](https://github.com/rancher/k3s) is probably by using
-[`k3d`](https://github.com/rancher/k3d) and Docker. If you wan't to run `k3s` on multiple nodes then the quickest way
+[k3d](https://github.com/rancher/k3s) and Docker. If you wan't to run `k3s` on multiple nodes then the quickest way
 is to use Alex Elis [`k3sup`](https://github.com/alexellis/k3sup). But if you wan't to run an OS targeted for `k3s`
 like `k3OS` that's where this tool might come in handy.
 
@@ -18,7 +18,7 @@ like `k3OS` that's where this tool might come in handy.
    For Raspberry Pi we recommend [HypriotOS](https://blog.hypriot.com/post/releasing-HypriotOS-1-11/). Install
    instructions can be found [here](https://github.com/hypriot/image-builder-rpi/releases).
 
-2. Scan your network for all your devices that should be part of the [`k3s`](https://github.com/rancher/k3s) cluster.
+2. Scan your network for all your devices that should be part of the `k3s` cluster.
    
    ```shell script
    $ k3pi scan --auth pirate:hypriot --substr pearl
@@ -36,6 +36,12 @@ like `k3OS` that's where this tool might come in handy.
    $ # If every thing looks good, the run the install, this will overwrite your nodes
    $ k3pi install --filename nodes.yaml --server <your selected server node ip>
    ```
+
+## Commands
+
+* [`scan`](#scan) - for finding your target nodes
+* [`install`](#install) - for installing k3OS
+* [`template`](#template) - for generating sample templates for server and agent
 
 #### `scan`
 ```
@@ -105,3 +111,29 @@ Flags:
   -t, --token string              token or cluster secret for joining a server
   -y, --yes                       confirm the installation
 ```
+
+#### `template`
+
+```
+Shows the k3OS config template for both server and agent.
+
+        Examples:
+
+        Shows both server and agent config template
+        $ k3pi template
+
+Usage:
+  k3pi template [flags]
+
+Flags:
+  -h, --help   help for template
+```
+
+## Links
+
+* [HypriotOS](https://blog.hypriot.com/post/releasing-HypriotOS-1-11/)
+* [HypriotOS Releases](https://github.com/hypriot/image-builder-rpi/releases)
+* [Rancher k3OS](https://github.com/rancher/k3os)
+* [Rancher k3s](https://github.com/rancher/k3s)
+* [Rancher k3d](https://github.com/rancher/k3d)
+* [Alex Ellis's k3sup](https://github.com/alexellis/k3sup)
