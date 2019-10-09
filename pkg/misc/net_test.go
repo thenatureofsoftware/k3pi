@@ -22,7 +22,7 @@ THE SOFTWARE.
 package misc
 
 import (
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"os"
 	"testing"
@@ -59,7 +59,7 @@ func verifyNumOfHosts(want int, found int, t *testing.T) {
 
 func TestWaitForNode(t *testing.T) {
 	t.Skip("manual test")
-	node := &pkg.Node{
+	node := &model.Node{
 		Address: "192.168.1.111",
 	}
 	sshSettings := &ssh.Settings{
@@ -76,7 +76,7 @@ func TestWaitForNode(t *testing.T) {
 func TestCopyKubeconfig(t *testing.T) {
 	t.Skip("manual test")
 
-	node := &pkg.Node{
+	node := &model.Node{
 		Address: "192.168.1.111",
 	}
 

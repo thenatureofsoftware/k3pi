@@ -28,7 +28,10 @@ import (
 )
 
 const (
-	ImageFilenameTmpl = "k3os-rootfs-%s.tar.gz"
+	ImageFilenameTmpl    = "k3os-rootfs-%s.tar.gz"
+	CheckSumFileTemplate = "sha256sum-%s.txt"
+	PathSeparator        = string(os.PathSeparator)
+	K3OSReleaseUrlTmpl   = "https://github.com/rancher/k3os/releases/download/%s/%s"
 )
 
 type SSHKeys []string
@@ -54,104 +57,8 @@ type CmdOperatorFactory struct {
 	Create func(ctx *CmdOperatorCtx) (CmdOperator, error)
 }
 
-type Node struct {
-	Hostname string `json:"hostname"`
-	Address  string `json:"address"`
-	Auth     Auth   `json:"auth"`
-	Arch     string `json:"arch"`
-}
-
-type Nodes []*Node
-
-func (n *Node) GetArch() string {
-	switch n.Arch {
-	case "x86_64":
-		return "amd64"
-	case "armv6l", "armv7l":
-		return "arm"
-	case "aarch64":
-		return "arm64"
-	default:
-		return "unknown"
-	}
-}
-
-func (n *Node) GetTarget(sshAuthorizedKeys []string, token string) *Target {
-	return &Target{
-		Token:             token,
-		SSHAuthorizedKeys: sshAuthorizedKeys,
-		Node:              n,
-	}
-}
-
-func (nodes *Nodes) IPAddresses() []string {
-	var ipAddresses []string
-	for _, v := range *nodes {
-		ipAddresses = append(ipAddresses, v.Address)
-	}
-	return ipAddresses
-}
-
-func (nodes *Nodes) Info(collect func(*Node) string) []string {
-	var info []string
-	for _, v := range *nodes {
-		info = append(info, collect(v))
-	}
-	return info
-}
-
-type Auth struct {
-	Type     string `json:"type"`
-	User     string `json:"user"`
-	Password string `json:"password,omitempty"`
-	SSHKey   string `json:"ssh_key,omitempty"`
-}
-
-type Target struct {
-	ServerIP, Token   string
-	SSHAuthorizedKeys []string
-	Node              *Node
-}
-
-func (target *Target) GetImageFilename() string {
-	return fmt.Sprintf(ImageFilenameTmpl, target.Node.GetArch())
-}
-
-func (target *Target) GetImageFilePath(resourceDir string) string {
-	return fmt.Sprintf("%s%s%s", resourceDir, string(os.PathSeparator), target.GetImageFilename())
-}
-
-type Targets []*Target
-
-func (targets *Targets) SetServerIP(serverIP string) {
-	for _, target := range *targets {
-		target.ServerIP = serverIP
-	}
-}
-
-func (nodes *Nodes) GetTargets(sshAuthorizedKeys []string, token string) Targets {
-	var targets Targets
-	for _, node := range *nodes {
-		targets = append(targets, node.GetTarget(sshAuthorizedKeys, token))
-	}
-	return targets
-}
-
-type Installer interface {
-	Install() error
-}
-
-type Installers []Installer
-
 type ConfigTemplates struct {
 	ServerTmpl, AgentTmpl string
-}
-
-type InstallTask struct {
-	DryRun    bool
-	Server    *Target
-	Agents    Targets
-	Templates *ConfigTemplates
 }
 
 type HostnameSpec struct {

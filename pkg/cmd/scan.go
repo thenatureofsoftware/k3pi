@@ -24,6 +24,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	ssh2 "github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"strings"
@@ -41,7 +42,7 @@ type ScanRequest struct {
 	UserCredentials         map[string]string
 }
 
-func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdOperatorFactory *pkg.CmdOperatorFactory) (*[]pkg.Node, error) {
+func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdOperatorFactory *pkg.CmdOperatorFactory) (*[]model.Node, error) {
 
 	settings := request.SSHSettings
 
@@ -54,7 +55,7 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 	misc.PanicOnError(err, "failed to create ssh config")
 	defer closeSSHAgent()
 
-	raspberries := []pkg.Node{}
+	raspberries := []model.Node{}
 	for i := range *alive {
 		ip := (*alive)[i]
 		address := fmt.Sprintf("%s:%s", ip, settings.Port)
@@ -66,11 +67,11 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 
 		if b, arch := checkArch(ctx, cmdOperatorFactory); b {
 			if hn, ok := checkIfHostnameMatch(request.HostnameSubString, ctx, cmdOperatorFactory); ok {
-				raspberries = append(raspberries, pkg.Node{
+				raspberries = append(raspberries, model.Node{
 					Hostname: hn,
 					Address:  ip,
 					Arch:     arch,
-					Auth: pkg.Auth{
+					Auth: model.Auth{
 						Type:   "ssh-key",
 						User:   settings.User,
 						SSHKey: settings.GetKeyPath(),
@@ -84,11 +85,11 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 				altCtx.SSHClientConfig = altConfig
 				if b, arch := checkArch(&altCtx, cmdOperatorFactory); b {
 					if hn, ok := checkIfHostnameMatch(request.HostnameSubString, &altCtx, cmdOperatorFactory); ok {
-						raspberries = append(raspberries, pkg.Node{
+						raspberries = append(raspberries, model.Node{
 							Hostname: hn,
 							Address:  ip,
 							Arch:     arch,
-							Auth: pkg.Auth{
+							Auth: model.Auth{
 								Type:     "basic-auth",
 								User:     username,
 								Password: password,

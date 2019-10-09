@@ -38,4 +38,6 @@ const (
 	ParamConfirmInstall       = "yes"
 	ParamServerConfigTmpl     = "server-cfg-tmpl"
 	ParamAgentConfigTmpl      = "agent-cfg-tmpl"
+	ParamTargetVersion        = "target-version"
+	ParamUpgradeFilename      = "update-filename"
 )

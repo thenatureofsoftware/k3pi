@@ -24,6 +24,7 @@ package misc
 import (
 	"fmt"
 	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"net"
 	"os/exec"
@@ -123,7 +124,7 @@ func (h *hostScanner) ScanForAliveHosts(cidr string) (*[]string, error) {
 	return &aliveHosts, nil
 }
 
-func WaitForNode(node *pkg.Node, sshSettings *ssh.Settings, timeout time.Duration) error {
+func WaitForNode(node *model.Node, sshSettings *ssh.Settings, timeout time.Duration) error {
 
 	resolvedSSHSettings := resolveSSHSettings(sshSettings)
 
@@ -162,7 +163,7 @@ func resolveSSHSettings(sshSettings *ssh.Settings) *ssh.Settings {
 	}
 }
 
-func CopyKubeconfig(kubeconfigFile string, node *pkg.Node) error {
+func CopyKubeconfig(kubeconfigFile string, node *model.Node) error {
 	return exec.Command(
 		"scp",
 		"-o",

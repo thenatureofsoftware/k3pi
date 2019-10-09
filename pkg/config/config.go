@@ -25,7 +25,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/kubernetes-sigs/yaml"
 	"io/ioutil"
 	"log"
@@ -95,7 +95,7 @@ func (c *CloudConfig) LoadFromBytes(content []byte) *CloudConfig {
 	return c
 }
 
-func NewServerConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
+func NewServerConfig(configTmpl string, target *model.K3OSNode) (*[]byte, error) {
 	tmpl := configTmpl
 	if tmpl == "" {
 		tmpl = ServerConfigTmpl
@@ -103,7 +103,7 @@ func NewServerConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
 	return generateConfig(tmpl, target)
 }
 
-func NewAgentConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
+func NewAgentConfig(configTmpl string, target *model.K3OSNode) (*[]byte, error) {
 	tmpl := configTmpl
 	if tmpl == "" {
 		tmpl = AgentConfigTmpl
@@ -111,7 +111,7 @@ func NewAgentConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
 	return generateConfig(tmpl, target)
 }
 
-func generateConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
+func generateConfig(configTmpl string, target *model.K3OSNode) (*[]byte, error) {
 
 	tmpl, err := template.New("cloud-config").Parse(configTmpl)
 	if err != nil {

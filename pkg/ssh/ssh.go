@@ -25,6 +25,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
@@ -106,7 +107,7 @@ func NewClientConfig(settings *Settings) (*ssh.ClientConfig, func() error, error
 	}, closeSSHAgent, nil
 }
 
-func NewClientConfigFor(node *pkg.Node) (*ssh.ClientConfig, func() error, error) {
+func NewClientConfigFor(node *model.Node) (*ssh.ClientConfig, func() error, error) {
 	auth := node.Auth
 	if auth.Type == "ssh-key" {
 		config, closeHandler, err := NewClientConfig(&Settings{

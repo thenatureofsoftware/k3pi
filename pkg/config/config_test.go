@@ -23,7 +23,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/kubernetes-sigs/yaml"
 	"testing"
@@ -99,15 +99,15 @@ func TestNewServerConfig(t *testing.T) {
 	}
 
 	// Generate
-	node := &pkg.Node{
+	node := &model.Node{
 		Hostname: "k3s-server",
 		Address:  "127.0.0.1",
-		Auth:     pkg.Auth{},
+		Auth:     model.Auth{},
 		Arch:     "aarch64",
 	}
-	configAsBytes, err := NewServerConfig("", &pkg.Target{
+	configAsBytes, err := NewServerConfig("", &model.K3OSNode{
 		SSHAuthorizedKeys: []string{"github:foobar"},
-		Node:              node,
+		Node:              *node,
 	})
 
 	if err != nil {
@@ -136,13 +136,13 @@ auth:
   user: root
 `
 
-	node := &pkg.Node{}
+	node := &model.Node{}
 	err := yaml.Unmarshal([]byte(nodeYaml), node)
 	misc.PanicOnError(err, "failed to unmarshal node")
 	serverIp := "127.0.0.2"
-	configAsBytes, err := NewAgentConfig("", &pkg.Target{
+	configAsBytes, err := NewAgentConfig("", &model.K3OSNode{
 		SSHAuthorizedKeys: []string{"github:foobar"},
-		Node:              node,
+		Node:              *node,
 		ServerIP:          serverIp,
 	})
 	misc.PanicOnError(err, "failed to create agent config")

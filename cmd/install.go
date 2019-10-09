@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/kubernetes-sigs/yaml"
 	"github.com/mitchellh/go-homedir"
@@ -73,12 +74,12 @@ var installCmd = &cobra.Command{
 		}
 		misc.PanicOnError(err, "error reading input file")
 
-		nodes := []*pkg.Node{}
+		nodes := []*model.Node{}
 		err = yaml.Unmarshal(bytes, &nodes)
 		misc.ExitOnError(err, "error parsing nodes from file")
 
 		if len(nodes) == 0 {
-			misc.ErrorExitWithMessage("No nodes found in file")
+			misc.ErrorExitWithMessage("no nodes found in file")
 		}
 
 		sshKeys := viper.GetStringSlice(ParamSSHKeyInstallBindKey)

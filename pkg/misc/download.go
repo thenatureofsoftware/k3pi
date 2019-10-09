@@ -25,6 +25,7 @@ import (
 	"bufio"
 	"crypto/sha256"
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/dustin/go-humanize"
 	"io"
 	"io/ioutil"
@@ -33,10 +34,6 @@ import (
 	"os"
 	"strings"
 )
-
-type FileDownload struct {
-	Filename, CheckSumFilename, Url, CheckSumUrl string
-}
 
 type WriteCounter struct {
 	Total uint64
@@ -89,9 +86,9 @@ func DownloadFile(filepath string, url string) error {
 	return nil
 }
 
-func DownloadAndVerify(download FileDownload) error {
+func DownloadAndVerify(download *model.RemoteAsset) error {
 
-	err := DownloadFile(download.Filename, download.Url)
+	err := DownloadFile(download.Filename, download.FileUrl)
 	if err != nil {
 		return err
 	}
