@@ -179,6 +179,7 @@ func (ins *installer) Install() error {
 	script := sshClient.Cmdf("sudo tar zxvf %s --strip-components=1 -C /", fn)
 	script = script.Cmd("sudo cp config.yaml /k3os/system/config.yaml")
 	script = script.Cmd("sudo sync")
+	script = script.Cmd("sudo reboot -d 1 &")
 
 	if ins.task.DryRun {
 		return nil
@@ -190,8 +191,6 @@ func (ins *installer) Install() error {
 		fmt.Println(stdErr)
 		return errors.Wrap(err, stdErr)
 	}
-
-	_ = sshClient.Cmd("sudo reboot -f").Run()
 
 	return nil
 }

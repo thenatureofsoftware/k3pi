@@ -134,7 +134,7 @@ func Install(args *InstallArgs) error {
 			fmt.Printf("Waiting for kubeconfig ... ")
 			fn := misc.CreateTempFileName(".", "k3s-*.yaml")
 
-			for i := 0; i < 6; i++ {
+			for i := 0; i < 12; i++ {
 				waitForNodeErr = misc.CopyKubeconfig(fn, serverNode)
 				if waitForNodeErr != nil {
 					time.Sleep(time.Second * 15)

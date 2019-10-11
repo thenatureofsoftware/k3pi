@@ -106,6 +106,7 @@ func (ins *k3sInstaller) Install() error {
 	script = script.Cmd("sudo /etc/init.d/k3s-service stop")
 	script = script.Cmdf("sudo ln -sfn /k3os/system/k3s/%s /k3os/system/k3s/current", ins.task.Version)
 	script = script.Cmd("sudo sync")
+	script = script.Cmd("sudo reboot -d 1 &")
 
 	if ins.task.DryRun {
 		return nil
@@ -117,8 +118,6 @@ func (ins *k3sInstaller) Install() error {
 		fmt.Println(stdErr)
 		return errors.Wrap(err, stdErr)
 	}
-
-	_ = nodeClient.Cmd("sudo reboot -f").Run()
 
 	return nil
 }

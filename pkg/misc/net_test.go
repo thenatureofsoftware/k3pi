@@ -56,13 +56,13 @@ func verifyNumOfHosts(want int, found int, t *testing.T) {
 }
 
 func TestCopyKubeconfig(t *testing.T) {
-	//t.Skip("manual test")
+	t.Skip("manual test")
 
 	node := &model.Node{
-		Address: model.ParseAddress("192.168.1.126:22"),
+		Address: model.ParseAddress("192.168.1.128:22"),
 	}
 
-	fn := CreateTempFileName("", "k3s-*.yaml")
+	fn := CreateTempFileName(os.TempDir(), "k3s-*.yaml")
 	defer os.RemoveAll(fn)
 
 	err := CopyKubeconfig(fn, node)
