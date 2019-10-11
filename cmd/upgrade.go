@@ -43,7 +43,7 @@ var upgradeCmd = &cobra.Command{
 	Example:
 	
 	Upgrades all nodes from a nodes file
-	$ k3pi upgrade -f ./nodes.yaml --target-version <k3s version>
+	$ k3pi upgrade -f ./nodes.yaml --version <k3s version>
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
