@@ -1,9 +1,8 @@
 package install
 
 import (
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/kubernetes-sigs/yaml"
 	"os"
 	"testing"
@@ -45,7 +44,7 @@ func TestOSInstallerFactory_MakeInstallers(t *testing.T) {
 		})
 	}
 
-	task := NewOSInstallTask(&server, agents, &pkg.ConfigTemplates{}, false)
+	task := NewOSInstallTask(&server, agents, &ConfigTemplates{}, false)
 
 	resourceDir := MakeResourceDir(task)
 	defer os.RemoveAll(resourceDir)

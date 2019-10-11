@@ -19,32 +19,37 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package cmd handles k3pi use cases
 package cmd
 
 import (
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/install"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"net"
 	"os"
 	"strings"
 	"time"
 )
 
-const DefaultSSHAuthorizedKey = "~/.ssh/id_rsa.pub"
+const (
+	// K3OSDefaultSSHAuthorizedKey is the default authorized key to be included in k3OS config
+	K3OSDefaultSSHAuthorizedKey = "~/.ssh/id_rsa.pub"
+)
 
+// InstallArgs is a parameter type for calling install function
 type InstallArgs struct {
 	model.Nodes
 	model.SSHKeys
 	Token, ServerID string
-	*pkg.HostnameSpec
+	*install.HostnameSpec
 	DryRun, Confirmed bool
-	Templates         *pkg.ConfigTemplates
+	Templates         *install.ConfigTemplates
 }
 
-// Installs k3os on all nodes.
+// Install installs k3os on all nodes.
 func Install(args *InstallArgs) error {
 
 	generateHostname(args.Nodes, args.HostnameSpec)
@@ -113,7 +118,7 @@ func Install(args *InstallArgs) error {
 	}
 
 	if serverNode != nil && !args.DryRun {
-		if err = misc.WaitForNode(serverNode, nil, time.Second*60); err == nil {
+		if err = install.WaitForNode(serverNode, nil, time.Second*60); err == nil {
 
 			var waitForNodeErr error
 			fmt.Printf("Waiting for kubeconfig ... ")
@@ -141,19 +146,20 @@ func Install(args *InstallArgs) error {
 	return nil
 }
 
-func generateHostname(nodes model.Nodes, spec *pkg.HostnameSpec) {
+func generateHostname(nodes model.Nodes, spec *install.HostnameSpec) {
 	for i, n := range nodes {
 		n.Hostname = spec.GetHostname(i + 1)
 	}
 }
 
-func SelectServerAndAgents(nodes model.Nodes, serverId string) (*model.Node, model.Nodes, error) {
+// SelectServerAndAgents selects the server and returns server and agents separated
+func SelectServerAndAgents(nodes model.Nodes, serverID string) (*model.Node, model.Nodes, error) {
 
 	var serverNode *model.Node = nil
 	var agentNodes model.Nodes
 
 	for _, node := range nodes {
-		if node.Hostname == serverId || node.Address == serverId {
+		if node.Hostname == serverID || node.Address == serverID {
 			serverNode = node
 		} else {
 			agentNodes = append(agentNodes, node)

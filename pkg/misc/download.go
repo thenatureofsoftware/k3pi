@@ -51,14 +51,15 @@ func (wc WriteCounter) PrintProgress() {
 	fmt.Printf("\rDownloading... %s complete", humanize.Bytes(wc.Total))
 }
 
-func DownloadFile(filepath string, url string) error {
+func DownloadFile(resourceDir string, filename string, url string) error {
 
-	out, err := os.Create(filepath + ".tmp")
+	absPath := resourceDir + string(os.PathSeparator) + filename
+	out, err := os.Create(absPath + ".tmp")
 	if err != nil {
 		return err
 	}
 	defer out.Close()
-	defer os.RemoveAll(filepath + ".tmp")
+	defer os.RemoveAll(absPath + ".tmp")
 
 	// Get the data
 	resp, err := http.Get(url)
@@ -78,7 +79,7 @@ func DownloadFile(filepath string, url string) error {
 
 	fmt.Print("\n")
 
-	err = os.Rename(filepath+".tmp", filepath)
+	err = os.Rename(absPath+".tmp", absPath)
 	if err != nil {
 		return err
 	}
@@ -86,25 +87,25 @@ func DownloadFile(filepath string, url string) error {
 	return nil
 }
 
-func DownloadAndVerify(download *model.RemoteAsset) error {
+func DownloadAndVerify(resourceDir string, download *model.RemoteAsset) error {
 
-	err := DownloadFile(download.Filename, download.FileUrl)
+	err := DownloadFile(resourceDir, download.Filename, download.FileUrl)
 	if err != nil {
 		return err
 	}
 
-	err = DownloadFile(download.CheckSumFilename, download.CheckSumUrl)
+	err = DownloadFile(resourceDir, download.CheckSumFilename, download.CheckSumUrl)
 	if err != nil {
 		return err
 	}
 
-	checksum, err := ioutil.ReadFile(download.CheckSumFilename)
+	checksum, err := ioutil.ReadFile(resourceDir + string(os.PathSeparator) + download.CheckSumFilename)
 	if err != nil {
 		return err
 	}
 	allValidCheckSums := string(checksum)
 
-	calcSHA256, err := CalculateSHA256(download.Filename)
+	calcSHA256, err := CalculateSHA256(resourceDir, download.Filename)
 	if err != nil {
 		return fmt.Errorf("failed to calculate check sum: %v", err)
 	}
@@ -116,8 +117,8 @@ func DownloadAndVerify(download *model.RemoteAsset) error {
 	return nil
 }
 
-func CalculateSHA256(filename string) (string, error) {
-	f, err := os.Open(filename)
+func CalculateSHA256(resourceDir string, filename string) (string, error) {
+	f, err := os.Open(resourceDir + string(os.PathSeparator) + filename)
 	if err != nil {
 		return "", err
 	}

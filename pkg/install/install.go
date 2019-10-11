@@ -2,20 +2,20 @@ package install
 
 import (
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
-type K3sUpgradeTask struct {
-	model.Task
-	Version string
-	Nodes   model.Nodes
-}
+const (
+	// os path separator as string (for string concat)
+	PathSeparatorStr = string(os.PathSeparator)
+)
 
 type installResult struct {
 	installer model.Installer
@@ -83,12 +83,51 @@ func MakeResourceDir(assetOwner model.RemoteAssetOwner) string {
 	misc.PanicOnError(err, "failed to create resource directory")
 
 	for _, remoteAsset := range assetOwner.GetRemoteAssets() {
-		_, err := os.Stat(resourceDir + pkg.PathSeparator + remoteAsset.Filename)
-		if err == os.ErrNotExist {
-			err := misc.DownloadAndVerify(remoteAsset)
+		_, err := os.Stat(resourceDir + PathSeparatorStr + remoteAsset.Filename)
+		if os.IsNotExist(err) {
+			err := misc.DownloadAndVerify(resourceDir, remoteAsset)
 			misc.PanicOnError(err, "failed to create resource directory")
 		}
 	}
 
 	return resourceDir
+}
+
+func WaitForNode(node *model.Node, sshSettings *ssh.Settings, timeout time.Duration) error {
+
+	resolvedSSHSettings := resolveSSHSettings(sshSettings)
+
+	clientConfig, sshAgentCloseHandler, err := ssh.NewClientConfig(resolveSSHSettings(sshSettings))
+	misc.PanicOnError(err, "failed to create ssh agent")
+	defer sshAgentCloseHandler()
+
+	ctx := &ssh.CmdOperatorCtx{
+		Address:         fmt.Sprintf("%s:%s", node.Address, resolvedSSHSettings.Port),
+		SSHClientConfig: clientConfig,
+		EnableStdOut:    false,
+	}
+
+	timeToStop := time.Now().Add(timeout)
+	for {
+		_, err := ssh.NewCmdOperator(ctx)
+		if err == nil {
+			break
+		} else if time.Now().After(timeToStop) {
+			return fmt.Errorf("timeout waiting for node: %s", node.Address)
+		}
+		time.Sleep(time.Second * 2)
+	}
+
+	return nil
+}
+
+func resolveSSHSettings(sshSettings *ssh.Settings) *ssh.Settings {
+	if sshSettings != nil {
+		return sshSettings
+	}
+	return &ssh.Settings{
+		User:    "rancher",
+		KeyPath: "~/.ssh/id_rsa",
+		Port:    "22",
+	}
 }

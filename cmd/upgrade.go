@@ -19,12 +19,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package cmd include Cobra commands
 package cmd
 
 import (
 	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/kubernetes-sigs/yaml"
 	"github.com/spf13/viper"
 	"io/ioutil"
@@ -82,7 +84,7 @@ func init() {
 	upgradeCmd.Flags().Bool(ParamDryRun, false, "if true will run the install but not execute commands")
 	upgradeCmd.Flags().StringP(ParamTargetVersion, "t", "", "target k3s version")
 	upgradeCmd.Flags().StringP(ParamFilename, "f", "", "scan output file with all nodes")
-	upgradeCmd.MarkFlagRequired(ParamTargetVersion)
+	_ = upgradeCmd.MarkFlagRequired(ParamTargetVersion)
 
 	_ = viper.BindPFlag(ParamDryRun, upgradeCmd.Flags().Lookup(ParamDryRun))
 	_ = viper.BindPFlag(ParamTargetVersion, upgradeCmd.Flags().Lookup(ParamTargetVersion))

@@ -1,5 +1,14 @@
 package model
 
+import "strings"
+
+const (
+	// AuthTypeSSHKey ssh private key authentication
+	AuthTypeSSHKey = "ssh-key"
+	// AuthTypeBasicAuth username / password authentication
+	AuthTypeBasicAuth = "basic-auth"
+)
+
 // Set of SSH keys
 type SSHKeys []string
 
@@ -68,17 +77,27 @@ type Node struct {
 	Arch     string `json:"arch"`
 }
 
-func (n *Node) GetArch() string {
+func (n *Node) GetArch(alternatives ...string) string {
+	altMap := make(map[string]string)
+	for i := range alternatives {
+		split := strings.Split(alternatives[i], ":")
+		altMap[split[0]] = split[1]
+	}
+	var arch string
 	switch n.Arch {
 	case "x86_64":
-		return "amd64"
+		arch = "amd64"
 	case "armv6l", "armv7l":
-		return "arm"
+		arch = "arm"
 	case "aarch64":
-		return "arm64"
+		arch = "arm64"
 	default:
 		return "unknown"
 	}
+	if alt, ok := altMap[arch]; ok {
+		return alt
+	}
+	return arch
 }
 
 // Slice of nodes

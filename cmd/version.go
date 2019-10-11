@@ -19,6 +19,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package cmd include Cobra commands
 package cmd
 
 import (
@@ -27,6 +29,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Information about the version of k3pi
 var (
 	Version   string = "dev"
 	GitCommit string

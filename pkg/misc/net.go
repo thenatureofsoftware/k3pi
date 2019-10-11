@@ -23,12 +23,9 @@ package misc
 
 import (
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"net"
 	"os/exec"
-	"time"
 )
 
 func hosts(cidr string) ([]string, error) {
@@ -78,15 +75,15 @@ func ping(pingChan <-chan string, pongChan chan<- pong) {
 }
 
 func receivePong(pongNum int, pongChan <-chan pong, doneChan chan<- []pong) {
-	var alives []pong
+	var alive []pong
 	for i := 0; i < pongNum; i++ {
 		pong := <-pongChan
 		//  fmt.Println("received:", pong)
 		if pong.Alive {
-			alives = append(alives, pong)
+			alive = append(alive, pong)
 		}
 	}
-	doneChan <- alives
+	doneChan <- alive
 }
 
 type HostScanner interface {
@@ -116,51 +113,12 @@ func (h *hostScanner) ScanForAliveHosts(cidr string) (*[]string, error) {
 		pingChan <- ip
 	}
 
-	aliveHosts := []string{}
+	var aliveHosts []string
 	for _, h := range <-doneChan {
 		aliveHosts = append(aliveHosts, h.Ip)
 	}
 
 	return &aliveHosts, nil
-}
-
-func WaitForNode(node *model.Node, sshSettings *ssh.Settings, timeout time.Duration) error {
-
-	resolvedSSHSettings := resolveSSHSettings(sshSettings)
-
-	clientConfig, sshAgentCloseHandler, err := ssh.NewClientConfig(resolveSSHSettings(sshSettings))
-	PanicOnError(err, "failed to create ssh agent")
-	defer sshAgentCloseHandler()
-
-	ctx := &pkg.CmdOperatorCtx{
-		Address:         fmt.Sprintf("%s:%s", node.Address, resolvedSSHSettings.Port),
-		SSHClientConfig: clientConfig,
-		EnableStdOut:    false,
-	}
-
-	timeToStop := time.Now().Add(timeout)
-	for {
-		_, err := ssh.NewCmdOperator(ctx)
-		if err == nil {
-			break
-		} else if time.Now().After(timeToStop) {
-			return fmt.Errorf("timeout waiting for node: %s", node.Address)
-		}
-		time.Sleep(time.Second * 2)
-	}
-
-	return nil
-}
-
-func resolveSSHSettings(sshSettings *ssh.Settings) *ssh.Settings {
-	if sshSettings != nil {
-		return sshSettings
-	}
-	return &ssh.Settings{
-		User:    "rancher",
-		KeyPath: "~/.ssh/id_rsa",
-		Port:    "22",
-	}
 }
 
 func CopyKubeconfig(kubeconfigFile string, node *model.Node) error {

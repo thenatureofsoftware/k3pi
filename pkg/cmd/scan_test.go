@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"testing"
 )
@@ -33,23 +32,23 @@ type mockHostScanner struct {
 }
 
 type MockCmdOperator struct {
-	Results map[string]pkg.Result
+	Results map[string]ssh.Result
 }
 
 func (op MockCmdOperator) Close() error {
 	return nil
 }
 
-func (op MockCmdOperator) Execute(command string) (*pkg.Result, error) {
+func (op MockCmdOperator) Execute(command string) (*ssh.Result, error) {
 	if result, ok := op.Results[command]; ok {
 		return &result, nil
-	} else {
-		return &result, fmt.Errorf("command not found")
 	}
+
+	return nil, fmt.Errorf("command not found")
 }
 
-func createMockCmdOperator(ctx *pkg.CmdOperatorCtx) (pkg.CmdOperator, error) {
-	return MockCmdOperator{Results: make(map[string]pkg.Result)}, nil
+func createMockCmdOperator(ctx *ssh.CmdOperatorCtx) (ssh.CmdOperator, error) {
+	return MockCmdOperator{Results: make(map[string]ssh.Result)}, nil
 }
 
 func (s mockHostScanner) ScanForAliveHosts(cidr string) (*[]string, error) {
@@ -60,7 +59,7 @@ func (s mockHostScanner) ScanForAliveHosts(cidr string) (*[]string, error) {
 }
 
 func TestScanForRaspberries(t *testing.T) {
-	cmdOpFactory := &pkg.CmdOperatorFactory{Create: createMockCmdOperator}
+	cmdOpFactory := &ssh.CmdOperatorFactory{Create: createMockCmdOperator}
 	scanRequest := &ScanRequest{
 		Cidr:              "127.0.0.1/32",
 		HostnameSubString: "",

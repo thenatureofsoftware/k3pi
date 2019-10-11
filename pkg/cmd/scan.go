@@ -19,30 +19,34 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package cmd handles k3pi use cases
 package cmd
 
 import (
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	ssh2 "github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"strings"
 )
 
+// SupportedArch supported architectures
 var SupportedArch = map[string]bool{
 	"armv6l":  true,
 	"armv7l":  true,
 	"aarch64": true,
 }
 
+// ScanRequest parameter type for scanning for nodes
 type ScanRequest struct {
 	Cidr, HostnameSubString string
 	SSHSettings             *ssh2.Settings
 	UserCredentials         map[string]string
 }
 
-func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdOperatorFactory *pkg.CmdOperatorFactory) (*[]model.Node, error) {
+// ScanForRaspberries scans the network for RaspberryPi-ish ARM devices
+func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdOperatorFactory *ssh2.CmdOperatorFactory) (*[]model.Node, error) {
 
 	settings := request.SSHSettings
 
@@ -59,7 +63,7 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 	for i := range *alive {
 		ip := (*alive)[i]
 		address := fmt.Sprintf("%s:%s", ip, settings.Port)
-		ctx := &pkg.CmdOperatorCtx{
+		ctx := &ssh2.CmdOperatorCtx{
 			Address:         address,
 			SSHClientConfig: config,
 			EnableStdOut:    false,
@@ -105,7 +109,7 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 	return &raspberries, nil
 }
 
-func checkIfHostnameMatch(hostnameSubStr string, ctx *pkg.CmdOperatorCtx, cmdOperatorFactory *pkg.CmdOperatorFactory) (string, bool) {
+func checkIfHostnameMatch(hostnameSubStr string, ctx *ssh2.CmdOperatorCtx, cmdOperatorFactory *ssh2.CmdOperatorFactory) (string, bool) {
 
 	cmdOperator, err := cmdOperatorFactory.Create(ctx)
 	if err != nil {
@@ -121,7 +125,7 @@ func checkIfHostnameMatch(hostnameSubStr string, ctx *pkg.CmdOperatorCtx, cmdOpe
 	return hostname, strings.Contains(hostname, hostnameSubStr)
 }
 
-func checkArch(ctx *pkg.CmdOperatorCtx, cmdOperatorFactory *pkg.CmdOperatorFactory) (bool, string) {
+func checkArch(ctx *ssh2.CmdOperatorCtx, cmdOperatorFactory *ssh2.CmdOperatorFactory) (bool, string) {
 	cmdOperator, err := cmdOperatorFactory.Create(ctx)
 	if err != nil {
 		return false, ""
@@ -135,8 +139,7 @@ func checkArch(ctx *pkg.CmdOperatorCtx, cmdOperatorFactory *pkg.CmdOperatorFacto
 	arch := strings.TrimSpace(string(result.StdOut))
 	if _, supported := SupportedArch[arch]; supported {
 		return supported, arch
-	} else {
-		return false, ""
 	}
 
+	return false, ""
 }

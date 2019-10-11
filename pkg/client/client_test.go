@@ -19,52 +19,71 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package pkg
+
+package client
 
 import (
 	"fmt"
-	"golang.org/x/crypto/ssh"
-	"os"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
+	"reflect"
+	"strings"
+	"testing"
 )
 
 const (
-	ImageFilenameTmpl    = "k3os-rootfs-%s.tar.gz"
-	CheckSumFileTemplate = "sha256sum-%s.txt"
-	PathSeparator        = string(os.PathSeparator)
-	K3OSReleaseUrlTmpl   = "https://github.com/rancher/k3os/releases/download/%s/%s"
+	ManualTestIP = "192.168.1.111"
 )
 
-type SSHKeys []string
-
-// The stdin and stdout from executing a command.
-type Result struct {
-	StdOut []byte
-	StdErr []byte
+var auth = &model.Auth{
+	Type:   model.AuthTypeSSHKey,
+	User:   "rancher",
+	SSHKey: "~/.ssh/id_rsa",
 }
 
-type CmdOperatorCtx struct {
-	Address         string
-	SSHClientConfig *ssh.ClientConfig
-	EnableStdOut    bool
+func TestNewClientManual(t *testing.T) {
+	t.Skip("manual test")
+
+	c, err := NewClient(auth, ManualTestIP, 22)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if reflect.TypeOf(c) != reflect.TypeOf(&client{}) {
+		t.Error("wrong type")
+	}
 }
 
-type CmdOperator interface {
-	Close() error
-	Execute(command string) (*Result, error)
+func TestClientManual_Cmd(t *testing.T) {
+	t.Skip("manual test")
+
+	c, err := NewClient(auth, ManualTestIP, 22)
+	if err != nil {
+		t.Error(err)
+	}
+
+	out, err := c.Cmd("whoami").Output()
+	if err != nil {
+		t.Error(err)
+	}
+	expected := auth.User
+	actual := strings.TrimSpace(string(out))
+
+	if expected != actual {
+		t.Error(fmt.Sprintf("expected: %s, actual: %s", expected, actual))
+	}
 }
 
-type CmdOperatorFactory struct {
-	Create func(ctx *CmdOperatorCtx) (CmdOperator, error)
-}
+func TestClientManual_Copy(t *testing.T) {
+	t.Skip("manual test")
+	c, err := NewClient(auth, ManualTestIP, 22)
+	if err != nil {
+		t.Error(err)
+	}
 
-type ConfigTemplates struct {
-	ServerTmpl, AgentTmpl string
-}
+	err = c.Copy("./README.md", "~/README.md")
 
-type HostnameSpec struct {
-	Pattern, Prefix string
-}
-
-func (h *HostnameSpec) GetHostname(index int) string {
-	return fmt.Sprintf(h.Pattern, h.Prefix, index)
+	if err != nil {
+		t.Error(err)
+	}
 }

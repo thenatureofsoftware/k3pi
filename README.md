@@ -1,4 +1,4 @@
-[![pipeline status](https://gitlab.com/TheNatureOfSoftware/k3pi/badges/master/pipeline.svg)](https://gitlab.com/TheNatureOfSoftware/k3pi/commits/master)
+[![pipeline status](https://gitlab.com/TheNatureOfSoftware/k3pi/badges/master/pipeline.svg)](https://gitlab.com/TheNatureOfSoftware/k3pi/commits/master) [![Go Report Card](https://goreportcard.com/badge/github.com/TheNatureOfSoftware/k3pi)](https://goreportcard.com/report/github.com/TheNatureOfSoftware/k3pi)
 
 # k3pi `/'ki 'pai/`
 

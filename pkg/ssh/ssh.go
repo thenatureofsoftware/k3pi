@@ -24,7 +24,6 @@ package ssh
 import (
 	"bytes"
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
@@ -143,17 +142,17 @@ func (s *cmdRunner) Close() error {
 	return s.client.Close()
 }
 
-func (s *cmdRunner) Execute(command string) (*pkg.Result, error) {
+func (s *cmdRunner) Execute(command string) (*Result, error) {
 	sess, err := s.client.NewSession()
 	if err != nil {
-		return &pkg.Result{}, err
+		return &Result{}, err
 	}
 
 	defer sess.Close()
 
 	sessStdOut, err := sess.StdoutPipe()
 	if err != nil {
-		return &pkg.Result{}, err
+		return &Result{}, err
 	}
 
 	output := bytes.Buffer{}
@@ -174,7 +173,7 @@ func (s *cmdRunner) Execute(command string) (*pkg.Result, error) {
 	}()
 	sessStderr, err := sess.StderrPipe()
 	if err != nil {
-		return &pkg.Result{}, err
+		return &Result{}, err
 	}
 
 	errorOutput := bytes.Buffer{}
@@ -190,10 +189,10 @@ func (s *cmdRunner) Execute(command string) (*pkg.Result, error) {
 	wg.Wait()
 
 	if err != nil {
-		return &pkg.Result{}, err
+		return &Result{}, err
 	}
 
-	return &pkg.Result{
+	return &Result{
 		StdErr: errorOutput.Bytes(),
 		StdOut: output.Bytes(),
 	}, nil
@@ -206,15 +205,15 @@ func (d dryRunCmdRunner) Close() error {
 	return nil
 }
 
-func (d dryRunCmdRunner) Execute(command string) (*pkg.Result, error) {
+func (d dryRunCmdRunner) Execute(command string) (*Result, error) {
 	//fmt.Printf("%s\n", command)
-	return &pkg.Result{
+	return &Result{
 		StdOut: []byte("\n"),
 		StdErr: []byte{},
 	}, nil
 }
 
-func NewCmdOperator(ctx *pkg.CmdOperatorCtx) (pkg.CmdOperator, error) {
+func NewCmdOperator(ctx *CmdOperatorCtx) (CmdOperator, error) {
 	client, err := ssh.Dial("tcp", ctx.Address, ctx.SSHClientConfig)
 	if err != nil {
 		return nil, err
@@ -228,7 +227,7 @@ func NewCmdOperator(ctx *pkg.CmdOperatorCtx) (pkg.CmdOperator, error) {
 	return &cmdOperator, nil
 }
 
-func NewDryRunCmdOperator(ctx *pkg.CmdOperatorCtx) (pkg.CmdOperator, error) {
+func NewDryRunCmdOperator(ctx *CmdOperatorCtx) (CmdOperator, error) {
 	client, err := ssh.Dial("tcp", ctx.Address, ctx.SSHClientConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("failed to connect to %s", ctx.Address))
