@@ -132,7 +132,7 @@ func Install(args *InstallArgs) error {
 
 			var waitForNodeErr error
 			fmt.Printf("Waiting for kubeconfig ... ")
-			fn := misc.CreateTempFileName(".", "k3s-*.yaml")
+			fn := misc.CreateTempFilename(".", "k3s-*.yaml")
 
 			for i := 0; i < 12; i++ {
 				waitForNodeErr = misc.CopyKubeconfig(fn, serverNode)

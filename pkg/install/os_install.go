@@ -1,7 +1,6 @@
 package install
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/client"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/config"
@@ -13,30 +12,30 @@ import (
 )
 
 const (
-	// OS image filename template
+	// K3OSImageFilenameTmpl OS image filename template
 	K3OSImageFilenameTmpl = "k3os-rootfs-%s.tar.gz"
-	// OS image check sum filename template
+	// K3OSCheckSumFileTmpl OS image check sum filename template
 	K3OSCheckSumFileTmpl = "sha256sum-%s.txt"
-	// OS release url template
-	K3OSReleaseUrlTmpl = "https://github.com/rancher/k3os/releases/download/%s/%s"
+	// K3OSReleaseURLTmpl OS release url template
+	K3OSReleaseURLTmpl = "https://github.com/rancher/k3os/releases/download/%s/%s"
 )
 
-// config.yaml go templates for generating server and agent config
+// ConfigTemplates config.yaml go templates for generating server and agent config
 type ConfigTemplates struct {
 	ServerTmpl, AgentTmpl string
 }
 
-// spec for generating hostnames (for nodes)
+// HostnameSpec spec for generating hostnames (for nodes)
 type HostnameSpec struct {
 	Pattern, Prefix string
 }
 
-// gets a generated hostname given the node list index
+// GetHostname gets a generated hostname given the node list index
 func (h *HostnameSpec) GetHostname(index int) string {
 	return fmt.Sprintf(h.Pattern, h.Prefix, index)
 }
 
-// task for installing k3OS
+// OSInstallTask task for installing k3OS
 type OSInstallTask struct {
 	model.Task
 	Server        *model.K3OSNode
@@ -46,7 +45,7 @@ type OSInstallTask struct {
 	ClientFactory client.Factory
 }
 
-// gets all remote assets for all nodes in this task
+// GetRemoteAssets gets all remote assets for all nodes in this task
 func (task *OSInstallTask) GetRemoteAssets() model.RemoteAssets {
 	var allNodes = model.K3OSNodes{}
 	var resources model.RemoteAssets
@@ -63,54 +62,54 @@ func (task *OSInstallTask) GetRemoteAssets() model.RemoteAssets {
 		arch := node.GetArch()
 		resources = append(resources, &model.RemoteAsset{
 			Filename:         task.GetImageFilename(arch),
-			FileUrl:          task.GetImageFileUrl(arch),
+			FileURL:          task.GetImageFileURL(arch),
 			CheckSumFilename: task.GetImageCheckSumFilename(arch),
-			CheckSumUrl:      task.GetImageCheckSumUrl(arch),
+			CheckSumURL:      task.GetImageCheckSumURL(arch),
 		})
 	}
 
 	return resources
 }
 
-// returns the full path of the image file given an architecture (arm, arm64)
+// GetImageFilePath returns the full path of the image file given an architecture (arm, arm64)
 func (task *OSInstallTask) GetImageFilePath(resourceDir string, arch string) string {
 	return fmt.Sprintf("%s%s%s", resourceDir, PathSeparatorStr, task.GetImageFilename(arch))
 }
 
-// returns the full path of the image check sum file given an architecture (arm, arm64)
+// GetImageCheckSumFilePath returns the full path of the image check sum file given an architecture (arm, arm64)
 func (task *OSInstallTask) GetImageCheckSumFilePath(resourceDir string, arch string) string {
 	return fmt.Sprintf("%s%s%s", resourceDir, PathSeparatorStr, task.GetImageCheckSumFilename(arch))
 }
 
-// returns image filename given an architecture (arm, arm64)
+// GetImageFilename returns image filename given an architecture (arm, arm64)
 func (task *OSInstallTask) GetImageFilename(arch string) string {
 	return fmt.Sprintf(K3OSImageFilenameTmpl, arch)
 }
 
-// returns image check sum filename given an architecture (arm, arm64)
+// GetImageCheckSumFilename returns image check sum filename given an architecture (arm, arm64)
 func (task *OSInstallTask) GetImageCheckSumFilename(arch string) string {
 	return fmt.Sprintf(K3OSCheckSumFileTmpl, arch)
 }
 
-// returns image file url given an architecture (arm, arm64)
-func (task *OSInstallTask) GetImageFileUrl(arch string) string {
-	return fmt.Sprintf(K3OSReleaseUrlTmpl, task.Version, task.GetImageFilename(arch))
+// GetImageFileURL returns image file url given an architecture (arm, arm64)
+func (task *OSInstallTask) GetImageFileURL(arch string) string {
+	return fmt.Sprintf(K3OSReleaseURLTmpl, task.Version, task.GetImageFilename(arch))
 }
 
-// returns image check sum file url given an architecture (arm, arm64)
-func (task *OSInstallTask) GetImageCheckSumUrl(arch string) string {
-	return fmt.Sprintf(K3OSReleaseUrlTmpl, task.Version, task.GetImageCheckSumFilename(arch))
+// GetImageCheckSumURL returns image check sum file url given an architecture (arm, arm64)
+func (task *OSInstallTask) GetImageCheckSumURL(arch string) string {
+	return fmt.Sprintf(K3OSReleaseURLTmpl, task.Version, task.GetImageCheckSumFilename(arch))
 }
 
-// factory for creating k3OS installers
+// OSInstallerFactory factory for creating k3OS installers
 type OSInstallerFactory struct{}
 
-// returns true if this factory supports creating an installer for the given task
+// Supports returns true if this factory supports creating an installer for the given task
 func (o OSInstallerFactory) Supports(task interface{}) bool {
 	return fmt.Sprintf("%T", task) == fmt.Sprintf("%T", &OSInstallTask{})
 }
 
-// creates installers for the given task
+// MakeInstallers creates installers for the given task
 func (o OSInstallerFactory) MakeInstallers(task interface{}, resourceDir string) model.Installers {
 	installTask := task.(*OSInstallTask)
 	var installers model.Installers
@@ -163,7 +162,7 @@ type installer struct {
 	operatorFactory *ssh.CmdOperatorFactory
 }
 
-// Installs k3OS
+// Install installs k3OS
 func (ins *installer) Install() error {
 
 	sshClient, err := ins.task.ClientFactory.Create(&ins.target.Auth, &ins.target.Address)
@@ -172,7 +171,7 @@ func (ins *installer) Install() error {
 	err = sshClient.Copy(ins.task.GetImageFilePath(ins.resourceDir, ins.target.GetArch()), fmt.Sprintf("~/%s", ins.task.GetImageFilename(ins.target.GetArch())))
 	misc.PanicOnError(err, "failed to copy image file")
 
-	err = sshClient.CopyReader(bytes.NewReader(*ins.config), fmt.Sprintf("~/%s", "config.yaml"))
+	err = sshClient.CopyBytes(ins.config, fmt.Sprintf("~/%s", "config.yaml"))
 	misc.PanicOnError(err, "failed to copy config file")
 
 	fn := ins.task.GetImageFilename(ins.target.GetArch())

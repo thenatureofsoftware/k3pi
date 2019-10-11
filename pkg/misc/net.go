@@ -19,6 +19,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package misc miscellaneous functionality
 package misc
 
 import (
@@ -42,9 +44,9 @@ func hosts(cidr string) ([]string, error) {
 	// remove network address and broadcast address
 	if len(ips) > 3 {
 		return ips[1 : len(ips)-1], nil
-	} else {
-		return ips, nil
 	}
+
+	return ips, nil
 }
 
 //  http://play.golang.org/p/m8TNTtygK0
@@ -58,7 +60,7 @@ func inc(ip net.IP) {
 }
 
 type pong struct {
-	Ip    string
+	IP    string
 	Alive bool
 }
 
@@ -71,7 +73,7 @@ func ping(pingChan <-chan string, pongChan chan<- pong) {
 		} else {
 			alive = true
 		}
-		pongChan <- pong{Ip: ip, Alive: alive}
+		pongChan <- pong{IP: ip, Alive: alive}
 	}
 }
 
@@ -87,16 +89,19 @@ func receivePong(pongNum int, pongChan <-chan pong, doneChan chan<- []pong) {
 	doneChan <- alive
 }
 
+// HostScanner scans for hosts
 type HostScanner interface {
 	ScanForAliveHosts(cidr string) (*[]string, error)
 }
 
+// NewHostScanner factory method for a host scanner
 func NewHostScanner() HostScanner {
 	return &hostScanner{}
 }
 
 type hostScanner struct{}
 
+// ScanForAliveHosts scans for all hosts that are alive
 func (h *hostScanner) ScanForAliveHosts(cidr string) (*[]string, error) {
 	hosts, _ := hosts(cidr)
 	concurrentMax := 50
@@ -116,12 +121,13 @@ func (h *hostScanner) ScanForAliveHosts(cidr string) (*[]string, error) {
 
 	var aliveHosts []string
 	for _, h := range <-doneChan {
-		aliveHosts = append(aliveHosts, h.Ip)
+		aliveHosts = append(aliveHosts, h.IP)
 	}
 
 	return &aliveHosts, nil
 }
 
+// CopyKubeconfig copies kubeconfig from server node
 func CopyKubeconfig(kubeconfigFile string, node *model.Node) error {
 
 	out, err := exec.Command(

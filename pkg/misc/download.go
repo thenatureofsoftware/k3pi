@@ -19,6 +19,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package misc miscellaneous functionality
 package misc
 
 import (
@@ -35,6 +37,7 @@ import (
 	"strings"
 )
 
+// WriteCounter counts bytes written
 type WriteCounter struct {
 	Total uint64
 }
@@ -46,11 +49,13 @@ func (wc *WriteCounter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
+// PrintProgress prints progress of bytes written
 func (wc WriteCounter) PrintProgress() {
 	fmt.Printf("\r%s", strings.Repeat(" ", 35))
 	fmt.Printf("\rDownloading... %s complete", humanize.Bytes(wc.Total))
 }
 
+// DownloadFile downloads a file to a resource directory
 func DownloadFile(resourceDir string, filename string, url string) error {
 
 	absPath := resourceDir + string(os.PathSeparator) + filename
@@ -87,14 +92,15 @@ func DownloadFile(resourceDir string, filename string, url string) error {
 	return nil
 }
 
+// DownloadAndVerify downloads a file and verifies the check sum
 func DownloadAndVerify(resourceDir string, download *model.RemoteAsset) error {
 
-	err := DownloadFile(resourceDir, download.Filename, download.FileUrl)
+	err := DownloadFile(resourceDir, download.Filename, download.FileURL)
 	if err != nil {
 		return err
 	}
 
-	err = DownloadFile(resourceDir, download.CheckSumFilename, download.CheckSumUrl)
+	err = DownloadFile(resourceDir, download.CheckSumFilename, download.CheckSumURL)
 	if err != nil {
 		return err
 	}
@@ -117,6 +123,7 @@ func DownloadAndVerify(resourceDir string, download *model.RemoteAsset) error {
 	return nil
 }
 
+// CalculateSHA256 calculates SHA256 check sum for a file
 func CalculateSHA256(resourceDir string, filename string) (string, error) {
 	f, err := os.Open(resourceDir + string(os.PathSeparator) + filename)
 	if err != nil {

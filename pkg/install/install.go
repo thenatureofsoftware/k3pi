@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	// os path separator as string (for string concat)
+	// PathSeparatorStr os path separator as string (for string concat)
 	PathSeparatorStr = string(os.PathSeparator)
 )
 
@@ -22,7 +22,7 @@ type installResult struct {
 	err       error
 }
 
-// Runs all installers in parallel
+// Run runs all installers in parallel
 func Run(installers model.Installers) error {
 
 	concurrentInstallers := 5
@@ -69,12 +69,13 @@ func Run(installers model.Installers) error {
 		//fmt.Printf("\r%s", strings.Repeat(" ", 35))
 		fmt.Println("Install failed with errors")
 		return fmt.Errorf("install errors: %s", installErrors)
-	} else {
-		fmt.Println("Install OK")
-		return nil
 	}
+
+	fmt.Println("Install OK")
+	return nil
 }
 
+// MakeResourceDir creates resource directory with all resources needed for install
 func MakeResourceDir(assetOwner model.RemoteAssetOwner) string {
 	home, err := homedir.Dir()
 	misc.PanicOnError(err, "failed to resolve home directory")
@@ -93,6 +94,7 @@ func MakeResourceDir(assetOwner model.RemoteAssetOwner) string {
 	return resourceDir
 }
 
+// WaitForNode wait for a node to come online
 func WaitForNode(node *model.Node, sshSettings *ssh.Settings, timeout time.Duration) error {
 
 	resolvedSSHSettings := resolveSSHSettings(sshSettings)

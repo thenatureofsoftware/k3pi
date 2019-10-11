@@ -66,7 +66,7 @@ func TestCloudConfig_LoadFrom(t *testing.T) {
 	}
 
 	expectedSize := 2
-	acctualSize := len(cloudConfig.SshAuthorizedKeys)
+	acctualSize := len(cloudConfig.SSHAuthorizedKeys)
 	if acctualSize != expectedSize {
 		t.Errorf("expected %d keys, found %d", expectedSize, acctualSize)
 	}
@@ -88,7 +88,7 @@ func TestNewServerConfig(t *testing.T) {
 	// This is what we wan't
 	want := CloudConfig{
 		Hostname:          "k3s-server",
-		SshAuthorizedKeys: []string{"github:foobar"},
+		SSHAuthorizedKeys: []string{"github:foobar"},
 		K3os: K3os{
 			K3sArgs: []string{
 				"server",
@@ -141,11 +141,11 @@ auth:
 	node := &model.Node{}
 	err := yaml.Unmarshal([]byte(nodeYaml), node)
 	misc.PanicOnError(err, "failed to unmarshal node")
-	serverIp := "127.0.0.2"
+	serverIP := "127.0.0.2"
 	configAsBytes, err := NewAgentConfig("", &model.K3OSNode{
 		SSHAuthorizedKeys: []string{"github:foobar"},
 		Node:              *node,
-		ServerIP:          serverIp,
+		ServerIP:          serverIP,
 	})
 	misc.PanicOnError(err, "failed to create agent config")
 	fmt.Println(string(*configAsBytes))

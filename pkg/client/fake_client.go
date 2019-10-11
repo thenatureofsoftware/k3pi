@@ -3,12 +3,10 @@ package client
 import (
 	"bytes"
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
-	"io"
-	"io/ioutil"
 )
 
+// NewFakeClient factory method for creating a fake node client
 func NewFakeClient(auth *model.Auth, address *model.Address) (Client, error) {
 	return &fakeClient{
 		auth:    auth,
@@ -21,12 +19,8 @@ type fakeClient struct {
 	address *model.Address
 }
 
-func (f *fakeClient) CopyReader(reader io.Reader, remotePath string) error {
-	b, err := ioutil.ReadAll(reader)
-	misc.PanicOnError(err, "failed to read content")
-
+func (f *fakeClient) CopyBytes(b *[]byte, remotePath string) error {
 	fmt.Printf("scp %s:\n%s\n", remotePath, b)
-
 	return nil
 }
 

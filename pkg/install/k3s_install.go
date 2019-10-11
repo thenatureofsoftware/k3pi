@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	// k3s release URL template
+	// K3sReleaseURLTmpl k3s release URL template
 	K3sReleaseURLTmpl = "https://github.com/rancher/k3s/releases/download/%s/%s"
-	// k3s binary filename template
+	// K3sBinFilenameTmpl k3s binary filename template
 	K3sBinFilenameTmpl = "k3s-%s"
-	// k3s binary check sum filename template
+	// K3sBinCheckSumFilenameTmpl k3s binary check sum filename template
 	K3sBinCheckSumFilenameTmpl = "sha256sum-%s.txt"
 )
 
@@ -36,9 +36,9 @@ func (task *K3sUpgradeTask) GetRemoteAssets() model.RemoteAssets {
 		csfn := fmt.Sprintf(K3sBinCheckSumFilenameTmpl, node.GetArch())
 		remoteAssets = append(remoteAssets, &model.RemoteAsset{
 			Filename:         fn,
-			FileUrl:          fmt.Sprintf(K3sReleaseURLTmpl, task.Version, fn),
+			FileURL:          fmt.Sprintf(K3sReleaseURLTmpl, task.Version, fn),
 			CheckSumFilename: csfn,
-			CheckSumUrl:      fmt.Sprintf(K3sReleaseURLTmpl, task.Version, csfn),
+			CheckSumURL:      fmt.Sprintf(K3sReleaseURLTmpl, task.Version, csfn),
 		})
 	}
 

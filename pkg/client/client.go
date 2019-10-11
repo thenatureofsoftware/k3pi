@@ -31,7 +31,6 @@ import (
 	ssh2 "github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"github.com/bramvdbogaerde/go-scp"
 	"github.com/mitchellh/go-homedir"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -48,9 +47,10 @@ type Client interface {
 	Cmd(cmd string) Script
 	Cmdf(cmd string, a ...interface{}) Script
 	Copy(filename, remotePath string) error
-	CopyReader(reader io.Reader, remotePath string) error
+	CopyBytes(b *[]byte, remotePath string) error
 }
 
+// Script script for running remote commands
 type Script interface {
 	Cmd(cmd string) Script
 	Cmdf(cmd string, a ...interface{}) Script
@@ -58,6 +58,7 @@ type Script interface {
 	Output() ([]byte, error)
 }
 
+// NewClient factory method for creating a new node client
 func NewClient(auth *model.Auth, address *model.Address) (Client, error) {
 
 	var sshClient *sshclient.Client
@@ -150,14 +151,11 @@ func (c *client) copyWithKey(filename string, remotePath string) ([]byte, error)
 	return out, err
 }
 
-func (c *client) CopyReader(reader io.Reader, remotePath string) error {
+func (c *client) CopyBytes(b *[]byte, remotePath string) error {
 	f, err := ioutil.TempFile(os.TempDir(), "k3pi-*")
 	misc.PanicOnError(err, "failed to create temp file")
 
-	b, err := ioutil.ReadAll(reader)
-	misc.PanicOnError(err, "failed to read content")
-
-	f.Write(b)
+	f.Write(*b)
 	f.Close()
 
 	err = c.Copy(f.Name(), remotePath)

@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	// DefaultK3OSVersion default k3OS version
 	DefaultK3OSVersion = "v0.3.0"
 	// AuthTypeSSHKey ssh private key authentication
 	AuthTypeSSHKey = "ssh-key"
@@ -14,49 +15,49 @@ const (
 	AuthTypeBasicAuth = "basic-auth"
 )
 
-// Set of SSH keys
+// SSHKeys set of SSH keys
 type SSHKeys []string
 
-// Represents an asset that can be downloaded
+// RemoteAsset represents an asset that can be downloaded
 type RemoteAsset struct {
-	Filename, FileUrl, CheckSumFilename, CheckSumUrl string
+	Filename, FileURL, CheckSumFilename, CheckSumURL string
 }
 
-// A slice of asssets
+// RemoteAssets a slice of asssets
 type RemoteAssets []*RemoteAsset
 
-// Owner of remote assets
+// RemoteAssetOwner owner of remote assets
 type RemoteAssetOwner interface {
 	GetRemoteAssets() RemoteAssets
 }
 
-// A task to be run for a node set
+// Task a task to be run for a node set
 type Task struct {
 	DryRun bool
 }
 
-// Target for an installation
+// InstallationTarget target for an installation
 type InstallationTarget struct {
 }
 
-// An installer that installs
+// Installer an installer that installs
 type Installer interface {
 	Install() error
 }
 
-// A set of installers
+// Installers a set of installers
 type Installers []Installer
 
-// Factory for making installers
+// InstallerFactory factory for making installers
 type InstallerFactory interface {
 	Supports(task interface{}) bool
 	MakeInstallers(task interface{}, resourceDir string) Installers
 }
 
-// A set of installer factories
+// InstallerFactories a set of installer factories
 type InstallerFactories []InstallerFactory
 
-// Fetches the installer factory for a install task
+// GetFactory fetches the installer factory for a install task
 func (inf *InstallerFactories) GetFactory(task interface{}) InstallerFactory {
 	for _, f := range *inf {
 		if f.Supports(task) {
@@ -85,7 +86,7 @@ func NewAddress(ip string, port int) Address {
 	}
 }
 
-// NewAddress creates a new address from ip and port strings
+// NewAddressStr creates a new address from ip and port strings
 func NewAddressStr(ip, port string) Address {
 	return ParseAddress(fmt.Sprintf("%s:%s", ip, port))
 }
@@ -104,7 +105,7 @@ func ParseAddress(s string) Address {
 	}
 }
 
-// Node authentication
+// Auth node authentication
 type Auth struct {
 	Type     string `json:"type"`
 	User     string `json:"user"`
@@ -112,7 +113,7 @@ type Auth struct {
 	SSHKey   string `json:"ssh_key,omitempty"`
 }
 
-// Represents a machine witn an IP and authentication for SSH access
+// Node represents a machine witn an IP and authentication for SSH access
 type Node struct {
 	Hostname string  `json:"hostname"`
 	Address  Address `json:"address"`
@@ -120,6 +121,8 @@ type Node struct {
 	Arch     string  `json:"arch"`
 }
 
+// GetArch returns the architecture for the given node. Alternative architecture identifiers can be supplied
+// as string separated by : example: arm:armhf
 func (n *Node) GetArch(alternatives ...string) string {
 	altMap := make(map[string]string)
 	for i := range alternatives {
@@ -143,9 +146,10 @@ func (n *Node) GetArch(alternatives ...string) string {
 	return arch
 }
 
-// Slice of nodes
+// Nodes slice of nodes
 type Nodes []*Node
 
+// Info collects info from a set of nodes
 func (nodes *Nodes) Info(collect func(node *Node) string) []string {
 	var info []string
 	for _, v := range *nodes {
@@ -154,7 +158,7 @@ func (nodes *Nodes) Info(collect func(node *Node) string) []string {
 	return info
 }
 
-// IP-addresses for a set of nodes
+// IPAddresses IP-addresses for a set of nodes
 func (nodes *Nodes) IPAddresses() []string {
 	var ipAddresses []string
 	for _, v := range *nodes {
@@ -163,21 +167,24 @@ func (nodes *Nodes) IPAddresses() []string {
 	return ipAddresses
 }
 
-// Target node for k3OS install
+// K3OSNode target node for k3OS install
 type K3OSNode struct {
 	Node
 	ServerIP, Token   string
 	SSHAuthorizedKeys []string
 }
 
+// K3OSNodes k3OS nodes
 type K3OSNodes []*K3OSNode
 
+// SetServerIP sets the server ip on all nodes
 func (targets *K3OSNodes) SetServerIP(serverIP string) {
 	for _, target := range *targets {
 		target.ServerIP = serverIP
 	}
 }
 
+// NewK3OSNode factory method for creating a new k3OS node
 func NewK3OSNode(node *Node, sshAuthorizedKeys SSHKeys, token string) *K3OSNode {
 	return &K3OSNode{
 		Token:             token,
@@ -186,6 +193,7 @@ func NewK3OSNode(node *Node, sshAuthorizedKeys SSHKeys, token string) *K3OSNode 
 	}
 }
 
+// NewK3OSNodes factory method for creating multiple k3OS nodes
 func NewK3OSNodes(nodes Nodes, sshAuthorizedKeys []string, token string) K3OSNodes {
 	var targets K3OSNodes
 	for _, node := range nodes {

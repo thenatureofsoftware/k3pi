@@ -19,6 +19,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package misc miscellaneous functionality
 package misc
 
 import (
@@ -62,7 +64,7 @@ func TestCopyKubeconfig(t *testing.T) {
 		Address: model.ParseAddress("192.168.1.128:22"),
 	}
 
-	fn := CreateTempFileName(os.TempDir(), "k3s-*.yaml")
+	fn := CreateTempFilename(os.TempDir(), "k3s-*.yaml")
 	defer os.RemoveAll(fn)
 
 	err := CopyKubeconfig(fn, node)
