@@ -1,10 +1,9 @@
 package install
 
 import (
-	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/client"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/test"
-	"github.com/kubernetes-sigs/yaml"
 	"os"
 	"testing"
 )
@@ -38,7 +37,14 @@ func TestOSInstallerFactory_MakeInstallers(t *testing.T) {
 		})
 	}
 
-	task := NewOSInstallTask(&server, agents, &ConfigTemplates{}, model.DefaultK3OSVersion, false)
+	task := &OSInstallTask{
+		Task:          model.Task{},
+		Server:        &server,
+		Agents:        agents,
+		Version:       model.DefaultK3OSVersion,
+		Templates:     &ConfigTemplates{},
+		ClientFactory: client.Factory{},
+	}
 
 	resourceDir := MakeResourceDir(task)
 	defer os.RemoveAll(resourceDir)
@@ -52,13 +58,12 @@ func TestOSInstallerFactory_MakeInstallers(t *testing.T) {
 }
 
 func TestOSInstaller_Install(t *testing.T) {
-	t.Skip("manual test")
-	node := &model.Node{}
-	err := yaml.Unmarshal([]byte(nodeYaml), node)
-	misc.PanicOnError(err, "failed to load node from yaml string")
 
-	node.Address = model.NewAddress("192.168.1.128", 22)
+	factory := client.Factory{Create: client.NewFakeClient}
+
+	node := test.CreateNodes()[0]
 	node.Hostname = "k3pi-1"
+
 	server := model.K3OSNode{
 		SSHAuthorizedKeys: []string{
 			"github:larmog",
@@ -68,11 +73,14 @@ func TestOSInstaller_Install(t *testing.T) {
 	}
 
 	task := &OSInstallTask{
-		Server: &server,
-		Agents: model.K3OSNodes{},
 		Task: model.Task{
 			DryRun: false,
 		},
+		Server:        &server,
+		Agents:        model.K3OSNodes{},
+		Version:       model.DefaultK3OSVersion,
+		ClientFactory: factory,
+		Templates:     &ConfigTemplates{},
 	}
 
 	resourceDir := MakeResourceDir(task)

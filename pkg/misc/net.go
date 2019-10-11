@@ -24,6 +24,7 @@ package misc
 import (
 	"fmt"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
+	"github.com/pkg/errors"
 	"net"
 	"os/exec"
 )
@@ -122,10 +123,19 @@ func (h *hostScanner) ScanForAliveHosts(cidr string) (*[]string, error) {
 }
 
 func CopyKubeconfig(kubeconfigFile string, node *model.Node) error {
-	return exec.Command(
+
+	out, err := exec.Command(
 		"scp",
 		"-o",
 		"StrictHostKeyChecking=no",
-		fmt.Sprintf("rancher@%s:/etc/rancher/k3s/k3s.yaml", node.Address),
-		kubeconfigFile).Run()
+		"-P",
+		fmt.Sprintf("%d", node.Address.Port),
+		fmt.Sprintf("rancher@%s:/etc/rancher/k3s/k3s.yaml", node.Address.IP),
+		kubeconfigFile).CombinedOutput()
+
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to copy kubeconfig, %s", out))
+	}
+
+	return nil
 }

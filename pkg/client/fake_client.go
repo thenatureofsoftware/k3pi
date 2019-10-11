@@ -3,19 +3,31 @@ package client
 import (
 	"bytes"
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
+	"io"
+	"io/ioutil"
 )
 
 func NewFakeClient(auth *model.Auth, address *model.Address) (Client, error) {
 	return &fakeClient{
-		auth: auth,
+		auth:    auth,
 		address: address,
 	}, nil
 }
 
 type fakeClient struct {
-	auth *model.Auth
+	auth    *model.Auth
 	address *model.Address
+}
+
+func (f *fakeClient) CopyReader(reader io.Reader, remotePath string) error {
+	b, err := ioutil.ReadAll(reader)
+	misc.PanicOnError(err, "failed to read content")
+
+	fmt.Printf("scp %s:\n%s\n", remotePath, b)
+
+	return nil
 }
 
 func (f *fakeClient) Copy(filename, remotePath string) error {

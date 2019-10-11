@@ -28,7 +28,12 @@ import (
 	"github.com/TheNatureOfSoftware/go-sshclient"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
+	ssh2 "github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
+	"github.com/bramvdbogaerde/go-scp"
 	"github.com/mitchellh/go-homedir"
+	"io"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -43,6 +48,7 @@ type Client interface {
 	Cmd(cmd string) Script
 	Cmdf(cmd string, a ...interface{}) Script
 	Copy(filename, remotePath string) error
+	CopyReader(reader io.Reader, remotePath string) error
 }
 
 type Script interface {
@@ -74,7 +80,7 @@ func NewClient(auth *model.Auth, address *model.Address) (Client, error) {
 
 	c := &client{
 		auth:      auth,
-		address: address,
+		address:   address,
 		sshClient: sshClient,
 	}
 
@@ -84,7 +90,7 @@ func NewClient(auth *model.Auth, address *model.Address) (Client, error) {
 type client struct {
 	sshClient *sshclient.Client
 	auth      *model.Auth
-	address *model.Address
+	address   *model.Address
 }
 
 func (c *client) Cmd(cmd string) Script {
@@ -99,9 +105,38 @@ func (c *client) Cmdf(cmd string, a ...interface{}) Script {
 func (c *client) Copy(filename, remotePath string) error {
 
 	if c.auth.Type != model.AuthTypeSSHKey {
-		return fmt.Errorf("unsupported authentication type: %s", c.auth.Type)
+		_, err := c.copyWithPassword(filename, remotePath)
+		return err
+	}
+	out, err := c.copyWithKey(filename, remotePath)
+	if err != nil {
+		return fmt.Errorf(strings.TrimSpace(string(out)))
 	}
 
+	return err
+}
+
+func (c *client) copyWithPassword(filename string, remotePath string) ([]byte, error) {
+	config, closeHandler := ssh2.PasswordClientConfig(c.auth.User, c.auth.Password)
+	defer closeHandler()
+
+	scpClient := scp.NewClient(c.address.String(), config)
+	err := scpClient.Connect()
+	misc.PanicOnError(err, fmt.Sprintf("failed to connect to %s", c.address))
+
+	// Open a file
+	f, _ := os.Open(filename)
+
+	defer scpClient.Close()
+	defer f.Close()
+
+	err = scpClient.CopyFromFile(*f, remotePath, "0655")
+	var out []byte
+
+	return out, err
+}
+
+func (c *client) copyWithKey(filename string, remotePath string) ([]byte, error) {
 	out, err := exec.Command(
 		"scp",
 		"-i",
@@ -112,10 +147,21 @@ func (c *client) Copy(filename, remotePath string) error {
 		"StrictHostKeyChecking=no",
 		filename,
 		fmt.Sprintf("%s@%s:%s", c.auth.User, c.address.IP, remotePath)).CombinedOutput()
+	return out, err
+}
 
-	if err != nil {
-		return fmt.Errorf(strings.TrimSpace(string(out)))
-	}
+func (c *client) CopyReader(reader io.Reader, remotePath string) error {
+	f, err := ioutil.TempFile(os.TempDir(), "k3pi-*")
+	misc.PanicOnError(err, "failed to create temp file")
+
+	b, err := ioutil.ReadAll(reader)
+	misc.PanicOnError(err, "failed to read content")
+
+	f.Write(b)
+	f.Close()
+
+	err = c.Copy(f.Name(), remotePath)
+	defer os.Remove(f.Name())
 
 	return err
 }
@@ -130,11 +176,12 @@ func (s *script) Cmd(cmd string) Script {
 }
 
 func (s *script) Cmdf(cmd string, a ...interface{}) Script {
-	return s.Cmd(fmt.Sprintf(cmd, a...))
+	s.remoteScript = s.remoteScript.Cmd(fmt.Sprintf(cmd, a...))
+	return s
 }
 
 func (s *script) Run() error {
-	return s.Run()
+	return s.remoteScript.Run()
 }
 
 func (s *script) Output() ([]byte, error) {

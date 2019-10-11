@@ -49,9 +49,9 @@ var upgradeCmd = &cobra.Command{
 		var err error
 		var bytes []byte
 
-		dryRun := viper.GetBool(ParamDryRun)
+		dryRun := viper.GetBool(ParamUpgradeDryRunBindKey)
 		fn := viper.GetString(ParamUpgradeFilename)
-		targetVersion := viper.GetString(ParamVersion)
+		targetVersion := viper.GetString(ParamK3sVersionBindKey)
 
 		if misc.DataPipedIn() {
 			bytes, err = ioutil.ReadAll(os.Stdin)
@@ -86,7 +86,7 @@ func init() {
 	upgradeCmd.Flags().StringP(ParamFilename, "f", "", "scan output file with all nodes")
 	_ = upgradeCmd.MarkFlagRequired(ParamVersion)
 
-	_ = viper.BindPFlag(ParamDryRun, upgradeCmd.Flags().Lookup(ParamDryRun))
-	_ = viper.BindPFlag(ParamVersion, upgradeCmd.Flags().Lookup(ParamVersion))
+	_ = viper.BindPFlag(ParamUpgradeDryRunBindKey, upgradeCmd.Flags().Lookup(ParamDryRun))
+	_ = viper.BindPFlag(ParamK3sVersionBindKey, upgradeCmd.Flags().Lookup(ParamVersion))
 	_ = viper.BindPFlag(ParamUpgradeFilename, upgradeCmd.Flags().Lookup(ParamFilename))
 }

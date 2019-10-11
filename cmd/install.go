@@ -84,11 +84,14 @@ var installCmd = &cobra.Command{
 			misc.ErrorExitWithMessage("no nodes found in file")
 		}
 
+		k3OSVersion := viper.GetString(ParamK3OSVersionBindKey)
+		if len(k3OSVersion) == 0 {
+			misc.ErrorExitWithMessage("k3OS version ( -v|--version ) is empty")
+		}
 		sshKeys := viper.GetStringSlice(ParamSSHKeyInstallBindKey)
 		server := viper.GetString(ParamServer)
 		token := viper.GetString(ParamToken)
-		dryRun := viper.GetBool(ParamDryRun)
-		k3OSVersion := viper.GetString(ParamVersion)
+		dryRun := viper.GetBool(ParamInstallDryRunBindKey)
 		hostnameSpec := &install.HostnameSpec{
 			Pattern: viper.GetString(ParamHostnamePattern),
 			Prefix:  viper.GetString(ParamHostnamePrefix),
@@ -130,7 +133,7 @@ var installCmd = &cobra.Command{
 				ServerTmpl: serverConfigTmpl,
 				AgentTmpl:  agentConfigTmpl,
 			},
-			K3OSVersion:k3OSVersion,
+			K3OSVersion: k3OSVersion,
 		}
 		err = pkgcmd.Install(installArgs)
 		misc.ExitOnError(err)
@@ -163,7 +166,7 @@ func init() {
 	installCmd.Flags().String(ParamVersion, model.DefaultK3OSVersion, fmt.Sprintf("k3OS version, default is %s", model.DefaultK3OSVersion))
 
 	installCmd.Flags().StringSliceP(ParamSSHKey, "k", []string{pkgcmd.K3OSDefaultSSHAuthorizedKey}, "ssh authorized key that should be added to the rancher user")
-	_ = viper.BindPFlag(ParamDryRun, installCmd.Flags().Lookup(ParamDryRun))
+	_ = viper.BindPFlag(ParamInstallDryRunBindKey, installCmd.Flags().Lookup(ParamDryRun))
 	_ = viper.BindPFlag(ParamConfirmInstall, installCmd.Flags().Lookup(ParamConfirmInstall))
 	_ = viper.BindPFlag(ParamFilename, installCmd.Flags().Lookup(ParamFilename))
 	_ = viper.BindPFlag(ParamServer, installCmd.Flags().Lookup(ParamServer))
@@ -173,5 +176,5 @@ func init() {
 	_ = viper.BindPFlag(ParamHostnamePrefix, installCmd.Flags().Lookup(ParamHostnamePrefix))
 	_ = viper.BindPFlag(ParamServerConfigTmpl, installCmd.Flags().Lookup(ParamServerConfigTmpl))
 	_ = viper.BindPFlag(ParamAgentConfigTmpl, installCmd.Flags().Lookup(ParamAgentConfigTmpl))
-	_ = viper.BindPFlag(ParamVersion, installCmd.Flags().Lookup(ParamVersion))
+	_ = viper.BindPFlag(ParamK3OSVersionBindKey, installCmd.Flags().Lookup(ParamVersion))
 }

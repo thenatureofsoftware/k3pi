@@ -68,8 +68,8 @@ func (inf *InstallerFactories) GetFactory(task interface{}) InstallerFactory {
 
 // Address address for SSH access
 type Address struct {
-	IP string `json:"ip"`
-	Port int `json:"port"`
+	IP   string `json:"ip"`
+	Port int    `json:"port"`
 }
 
 // String address as string <ip>:<port>
@@ -92,7 +92,7 @@ func NewAddressStr(ip, port string) Address {
 
 // ParseAddress parses an address from a string "<ip>:<port>"
 func ParseAddress(s string) Address {
-	parts := strings.Split(s,":")
+	parts := strings.Split(s, ":")
 	if len(parts) != 2 {
 		return Address{}
 	}
@@ -114,10 +114,10 @@ type Auth struct {
 
 // Represents a machine witn an IP and authentication for SSH access
 type Node struct {
-	Hostname string `json:"hostname"`
-	Address Address `json:"address"`
-	Auth     Auth   `json:"auth"`
-	Arch     string `json:"arch"`
+	Hostname string  `json:"hostname"`
+	Address  Address `json:"address"`
+	Auth     Auth    `json:"auth"`
+	Arch     string  `json:"arch"`
 }
 
 func (n *Node) GetArch(alternatives ...string) string {

@@ -1,16 +1,15 @@
 package install
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/client"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/config"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
-	"github.com/bramvdbogaerde/go-scp"
 	"github.com/pkg/errors"
-	"os"
+	"strings"
 )
 
 const (
@@ -40,10 +39,11 @@ func (h *HostnameSpec) GetHostname(index int) string {
 // task for installing k3OS
 type OSInstallTask struct {
 	model.Task
-	Server    *model.K3OSNode
-	Agents    model.K3OSNodes
-	Version string
-	Templates *ConfigTemplates
+	Server        *model.K3OSNode
+	Agents        model.K3OSNodes
+	Version       string
+	Templates     *ConfigTemplates
+	ClientFactory client.Factory
 }
 
 // gets all remote assets for all nodes in this task
@@ -100,17 +100,6 @@ func (task *OSInstallTask) GetImageFileUrl(arch string) string {
 // returns image check sum file url given an architecture (arm, arm64)
 func (task *OSInstallTask) GetImageCheckSumUrl(arch string) string {
 	return fmt.Sprintf(K3OSReleaseUrlTmpl, task.Version, task.GetImageCheckSumFilename(arch))
-}
-
-// creates a new task for installing k3OS
-func NewOSInstallTask(server *model.K3OSNode, agents model.K3OSNodes, templates *ConfigTemplates, version string, dryRun bool) *OSInstallTask {
-	return &OSInstallTask{
-		Task:      model.Task{DryRun: dryRun},
-		Server:    server,
-		Agents:    agents,
-		Templates: templates,
-		Version: version,
-	}
 }
 
 // factory for creating k3OS installers
@@ -176,55 +165,33 @@ type installer struct {
 
 // Installs k3OS
 func (ins *installer) Install() error {
-	sshConfig, sshAgentCloseHandler, err := ssh.NewClientConfigFor(&ins.target.Node)
-	misc.PanicOnError(err, "failed to create ssh config")
-	defer sshAgentCloseHandler()
 
-	address := ins.target.Node.Address
+	sshClient, err := ins.task.ClientFactory.Create(&ins.target.Auth, &ins.target.Address)
+	misc.PanicOnError(err, "failed to create SSH client")
 
-	scpClient := scp.NewClient(address.String(), sshConfig)
-	err = scpClient.Connect()
-	misc.PanicOnError(err, fmt.Sprintf("scp client failed to connect to %s", address))
-
-	imageFile, err := os.Open(ins.task.GetImageFilePath(ins.resourceDir, ins.target.GetArch()))
-	misc.PanicOnError(err, "failed to open image file")
-	defer imageFile.Close()
-	stat, err := imageFile.Stat()
-	misc.PanicOnError(err, "failed to get file info")
-
-	err = scpClient.Copy(bufio.NewReader(imageFile), fmt.Sprintf("~/%s", ins.task.GetImageFilename(ins.target.GetArch())), "0655", stat.Size())
+	err = sshClient.Copy(ins.task.GetImageFilePath(ins.resourceDir, ins.target.GetArch()), fmt.Sprintf("~/%s", ins.task.GetImageFilename(ins.target.GetArch())))
 	misc.PanicOnError(err, "failed to copy image file")
 
-	// It's strange but we need to close and open for each file
-	_ = scpClient.Session.Close()
-	err = scpClient.Connect()
-	misc.PanicOnError(err, fmt.Sprintf("scp client failed to connect to %s", address))
-	defer scpClient.Session.Close()
-
-	err = scpClient.Copy(bytes.NewReader(*ins.config), fmt.Sprintf("~/%s", "config.yaml"), "0655", int64(len(*ins.config)))
+	err = sshClient.CopyReader(bytes.NewReader(*ins.config), fmt.Sprintf("~/%s", "config.yaml"))
 	misc.PanicOnError(err, "failed to copy config file")
 
-	ctx := &ssh.CmdOperatorCtx{
-		Address:         address,
-		SSHClientConfig: sshConfig,
-		EnableStdOut:    false,
-	}
-
-	operator, err := ins.operatorFactory.Create(ctx)
-	misc.PanicOnError(err, fmt.Sprintf("failed to connect to %s", ctx.Address))
-
 	fn := ins.task.GetImageFilename(ins.target.GetArch())
-	result, err := operator.Execute(fmt.Sprintf("sudo tar zxvf %s --strip-components=1 -C /", fn))
-	if err2 := errors.Wrap(err, fmt.Sprintf("failed to extract %s, result:\n %v", fn, result)); err2 != nil {
-		return err2
+	script := sshClient.Cmdf("sudo tar zxvf %s --strip-components=1 -C /", fn)
+	script = script.Cmd("sudo cp config.yaml /k3os/system/config.yaml")
+	script = script.Cmd("sudo sync")
+
+	if ins.task.DryRun {
+		return nil
 	}
 
-	result, err = operator.Execute("sudo cp config.yaml /k3os/system/config.yaml")
-	if err2 := errors.Wrap(err, fmt.Sprintf("failed to install config:\n %v", result)); err2 != nil {
-		return err2
+	out, err := script.Output()
+	if err != nil {
+		stdErr := strings.TrimSpace(string(out))
+		fmt.Println(stdErr)
+		return errors.Wrap(err, stdErr)
 	}
 
-	_, _ = operator.Execute("sudo sync && sudo reboot -f")
+	_ = sshClient.Cmd("sudo reboot -f").Run()
 
 	return nil
 }

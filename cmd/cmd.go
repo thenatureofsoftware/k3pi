@@ -26,6 +26,8 @@ package cmd
 // Command line parameters
 const (
 	ParamDryRun               = "dry-run"
+	ParamInstallDryRunBindKey = "install-dry-run"
+	ParamUpgradeDryRunBindKey = "upgrade-dry-run"
 	ParamFilename             = "filename"
 	ParamServer               = "server"
 	ParamToken                = "token"
@@ -42,5 +44,7 @@ const (
 	ParamServerConfigTmpl     = "server-cfg-tmpl"
 	ParamAgentConfigTmpl      = "agent-cfg-tmpl"
 	ParamVersion              = "version"
+	ParamK3sVersionBindKey    = "k3s-version"
+	ParamK3OSVersionBindKey   = "k3OS-version"
 	ParamUpgradeFilename      = "update-filename"
 )

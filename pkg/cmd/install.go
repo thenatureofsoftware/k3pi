@@ -47,7 +47,7 @@ type InstallArgs struct {
 	*install.HostnameSpec
 	DryRun, Confirmed bool
 	Templates         *install.ConfigTemplates
-	K3OSVersion string
+	K3OSVersion       string
 }
 
 // Install installs k3os on all nodes.
@@ -101,7 +101,16 @@ func Install(args *InstallArgs) error {
 		agentTargets.SetServerIP(serverIP.String())
 	}
 
-	installTask := install.NewOSInstallTask(serverTarget, agentTargets, args.Templates, args.K3OSVersion, args.DryRun)
+	installTask := &install.OSInstallTask{
+		Task: model.Task{
+			DryRun: args.DryRun,
+		},
+		Server:        serverTarget,
+		Agents:        agentTargets,
+		Version:       args.K3OSVersion,
+		Templates:     args.Templates,
+		ClientFactory: clientFactory,
+	}
 
 	resourceDir := install.MakeResourceDir(installTask)
 	defer os.RemoveAll(resourceDir)

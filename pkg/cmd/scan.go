@@ -91,7 +91,7 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 					if hn, ok := checkIfHostnameMatch(request.HostnameSubString, &altCtx, cmdOperatorFactory); ok {
 						raspberries = append(raspberries, model.Node{
 							Hostname: hn,
-							Address: address,
+							Address:  address,
 							Arch:     arch,
 							Auth: model.Auth{
 								Type:     "basic-auth",
