@@ -19,6 +19,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package misc miscellaneous functionality
 package misc
 
 import (
@@ -30,17 +32,20 @@ import (
 	"path/filepath"
 )
 
+// DataPipedIn detects if data is piped in
 func DataPipedIn() bool {
 	stat, _ := os.Stdin.Stat()
 	return (stat.Mode() & os.ModeCharDevice) == 0
 }
 
+// PanicOnError panics on error with a message
 func PanicOnError(err error, message string) {
 	if err != nil {
 		panic(errors.Wrap(err, message))
 	}
 }
 
+// ExitOnError exits on error with a message
 func ExitOnError(err error, message ...string) {
 	if err != nil {
 		if len(message) > 0 {
@@ -51,21 +56,25 @@ func ExitOnError(err error, message ...string) {
 	}
 }
 
+// Info prints a message to stdout for the user to see
 func Info(message string) {
 	fmt.Printf("%s\n", message)
 }
 
+// ErrorExitWithMessage exits with a message
 func ErrorExitWithMessage(message string) {
 	fmt.Printf("Error: %s\n", message)
 	os.Exit(1)
 }
 
+// ErrorExitWithError exits with an error
 func ErrorExitWithError(err error) {
 	fmt.Printf("Error: %s\n", err)
 	os.Exit(1)
 }
 
-func CreateTempFileName(dir string, pattern string) string {
+// CreateTempFilename creates a temp file name
+func CreateTempFilename(dir string, pattern string) string {
 	dirPath, err := filepath.Abs(dir)
 	PanicOnError(err, "failed to resolve abs path")
 
@@ -82,6 +91,7 @@ func CreateTempFileName(dir string, pattern string) string {
 	return fn
 }
 
+// GenerateToken generates a token
 func GenerateToken() string {
 	b := make([]byte, 32)
 	rand.Read(b)

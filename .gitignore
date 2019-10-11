@@ -14,7 +14,8 @@
 .idea
 
 # k3pi specific
-nodes.yaml
+nodes*.yaml
 k3pi
 k3s-*.yaml
 bin
+todo.md

@@ -19,12 +19,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package misc miscellaneous functionality
 package misc
 
 import (
 	"bufio"
 	"crypto/sha256"
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/dustin/go-humanize"
 	"io"
 	"io/ioutil"
@@ -34,10 +37,7 @@ import (
 	"strings"
 )
 
-type FileDownload struct {
-	Filename, CheckSumFilename, Url, CheckSumUrl string
-}
-
+// WriteCounter counts bytes written
 type WriteCounter struct {
 	Total uint64
 }
@@ -49,19 +49,22 @@ func (wc *WriteCounter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
+// PrintProgress prints progress of bytes written
 func (wc WriteCounter) PrintProgress() {
 	fmt.Printf("\r%s", strings.Repeat(" ", 35))
 	fmt.Printf("\rDownloading... %s complete", humanize.Bytes(wc.Total))
 }
 
-func DownloadFile(filepath string, url string) error {
+// DownloadFile downloads a file to a resource directory
+func DownloadFile(resourceDir string, filename string, url string) error {
 
-	out, err := os.Create(filepath + ".tmp")
+	absPath := resourceDir + string(os.PathSeparator) + filename
+	out, err := os.Create(absPath + ".tmp")
 	if err != nil {
 		return err
 	}
 	defer out.Close()
-	defer os.RemoveAll(filepath + ".tmp")
+	defer os.RemoveAll(absPath + ".tmp")
 
 	// Get the data
 	resp, err := http.Get(url)
@@ -81,7 +84,7 @@ func DownloadFile(filepath string, url string) error {
 
 	fmt.Print("\n")
 
-	err = os.Rename(filepath+".tmp", filepath)
+	err = os.Rename(absPath+".tmp", absPath)
 	if err != nil {
 		return err
 	}
@@ -89,25 +92,26 @@ func DownloadFile(filepath string, url string) error {
 	return nil
 }
 
-func DownloadAndVerify(download FileDownload) error {
+// DownloadAndVerify downloads a file and verifies the check sum
+func DownloadAndVerify(resourceDir string, download *model.RemoteAsset) error {
 
-	err := DownloadFile(download.Filename, download.Url)
+	err := DownloadFile(resourceDir, download.Filename, download.FileURL)
 	if err != nil {
 		return err
 	}
 
-	err = DownloadFile(download.CheckSumFilename, download.CheckSumUrl)
+	err = DownloadFile(resourceDir, download.CheckSumFilename, download.CheckSumURL)
 	if err != nil {
 		return err
 	}
 
-	checksum, err := ioutil.ReadFile(download.CheckSumFilename)
+	checksum, err := ioutil.ReadFile(resourceDir + string(os.PathSeparator) + download.CheckSumFilename)
 	if err != nil {
 		return err
 	}
 	allValidCheckSums := string(checksum)
 
-	calcSHA256, err := CalculateSHA256(download.Filename)
+	calcSHA256, err := CalculateSHA256(resourceDir, download.Filename)
 	if err != nil {
 		return fmt.Errorf("failed to calculate check sum: %v", err)
 	}
@@ -119,8 +123,9 @@ func DownloadAndVerify(download FileDownload) error {
 	return nil
 }
 
-func CalculateSHA256(filename string) (string, error) {
-	f, err := os.Open(filename)
+// CalculateSHA256 calculates SHA256 check sum for a file
+func CalculateSHA256(resourceDir string, filename string) (string, error) {
+	f, err := os.Open(resourceDir + string(os.PathSeparator) + filename)
 	if err != nil {
 		return "", err
 	}

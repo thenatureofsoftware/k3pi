@@ -1,4 +1,4 @@
-[![pipeline status](https://gitlab.com/TheNatureOfSoftware/k3pi/badges/master/pipeline.svg)](https://gitlab.com/TheNatureOfSoftware/k3pi/commits/master)
+[![pipeline status](https://gitlab.com/TheNatureOfSoftware/k3pi/badges/master/pipeline.svg)](https://gitlab.com/TheNatureOfSoftware/k3pi/commits/master) [![Go Report Card](https://goreportcard.com/badge/github.com/TheNatureOfSoftware/k3pi)](https://goreportcard.com/report/github.com/TheNatureOfSoftware/k3pi)
 
 # k3pi `/'ki 'pai/`
 
@@ -36,12 +36,19 @@ like `k3OS` that's where this tool might come in handy.
    $ # If every thing looks good, the run the install, this will overwrite your nodes
    $ k3pi install --filename nodes.yaml --server <your selected server node ip>
    ```
+## Gotchas
 
+* When installing, if your environment assign a new IP address after reboot you will get an error.
+  The installation was probably successful but you need to copy your `kubeconfig` your self.
+* If you saved your nodes to file before installing then you need to re-scan your nodes. All nodes
+  will have `rancher` as user.
+ 
 ## Commands
 
 * [`scan`](#scan) - for finding your target nodes
 * [`install`](#install) - for installing k3OS
 * [`template`](#template) - for generating sample templates for server and agent
+* [`ugrade`](#upgrade) - for installing a newer (or older) version of `k3s`
 
 #### `scan`
 ```
@@ -127,6 +134,25 @@ Usage:
 
 Flags:
   -h, --help   help for template
+```
+
+#### `upgrade`
+
+```
+Upgrades all nodes to the specified version of k3s.
+        Example:
+        
+        Upgrades all nodes from a nodes file
+        $ k3pi upgrade -f ./nodes.yaml --version <k3s version>
+
+Usage:
+  k3pi upgrade [flags]
+
+Flags:
+      --dry-run           if true will run the install but not execute commands
+  -f, --filename string   scan output file with all nodes
+  -h, --help              help for upgrade
+  -t, --version string    target k3s version
 ```
 
 ## Links

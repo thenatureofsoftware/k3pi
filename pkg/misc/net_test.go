@@ -19,14 +19,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package misc miscellaneous functionality
 package misc
 
 import (
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestHostScanner_ScanForAliveHosts_Localhost(t *testing.T) {
@@ -57,30 +57,14 @@ func verifyNumOfHosts(want int, found int, t *testing.T) {
 	}
 }
 
-func TestWaitForNode(t *testing.T) {
-	t.Skip("manual test")
-	node := &pkg.Node{
-		Address: "192.168.1.111",
-	}
-	sshSettings := &ssh.Settings{
-		User:    "pirate",
-		KeyPath: "~/.ssh/id_rsa",
-		Port:    "22",
-	}
-	err := WaitForNode(node, sshSettings, time.Second*10)
-	if err != nil {
-		t.Error(err)
-	}
-}
-
 func TestCopyKubeconfig(t *testing.T) {
 	t.Skip("manual test")
 
-	node := &pkg.Node{
-		Address: "192.168.1.111",
+	node := &model.Node{
+		Address: model.ParseAddress("192.168.1.128:22"),
 	}
 
-	fn := CreateTempFileName("", "k3s-*.yaml")
+	fn := CreateTempFilename(os.TempDir(), "k3s-*.yaml")
 	defer os.RemoveAll(fn)
 
 	err := CopyKubeconfig(fn, node)

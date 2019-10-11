@@ -20,31 +20,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-// Package misc miscellaneous functionality
-package misc
+// Package cmd handles k3pi use cases
+package cmd
 
 import (
-	"fmt"
-	"testing"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/client"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/install"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 )
 
-func TestCheckError_Should_Panic_On_Error(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Errorf("The code did not panic")
-		} else {
-			fmt.Printf("%v\n", r)
-		}
-	}()
-
-	PanicOnError(fmt.Errorf("a wrapped error"), "wrapping error")
-}
-
-func TestGenerateToken(t *testing.T) {
-	token := GenerateToken()
-	length := 64
-	if len(token) != length {
-		t.Errorf("tokens should have a length of %d", length)
-	}
-}
+var installerFactories = model.InstallerFactories{&install.OSInstallerFactory{}, &install.K3sInstallerFactory{}}
+var clientFactory = client.Factory{Create: client.NewClient}

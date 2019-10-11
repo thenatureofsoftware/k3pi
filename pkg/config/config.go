@@ -19,19 +19,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package config for handling k3OS config
 package config
 
 import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/kubernetes-sigs/yaml"
 	"io/ioutil"
 	"log"
 	"text/template"
 )
 
+// ServerConfigTmpl template for configuring server
 var ServerConfigTmpl = `hostname: {{.Node.Hostname}}
 ssh_authorized_keys:
 {{- range .SSHAuthorizedKeys}}
@@ -41,7 +44,7 @@ k3os:
   k3s_args:
   - server
   - "--bind-address"
-  - "{{.Node.Address}}"
+  - "{{.Node.Address.IP}}"
   token: {{.Token}}
   password: rancher
   dns_nameservers:
@@ -51,6 +54,7 @@ k3os:
   - 0.europe.pool.ntp.org
   - 1.europe.pool.ntp.org`
 
+// AgentConfigTmpl template for configuring agent
 var AgentConfigTmpl = `hostname: {{.Node.Hostname}}
 ssh_authorized_keys:
 {{- range .SSHAuthorizedKeys}}
@@ -60,7 +64,7 @@ k3os:
   k3s_args:
   - agent
   - "--node-ip"
-  - "{{.Node.Address}}"
+  - "{{.Node.Address.IP}}"
   server_url: https://{{.ServerIP}}:6443
   token: {{.Token}}
   password: rancher
@@ -71,22 +75,26 @@ k3os:
   - 0.europe.pool.ntp.org
   - 1.europe.pool.ntp.org`
 
+// CloudConfig holds k3OS config
 type CloudConfig struct {
 	Hostname          string   `json:"hostname"`
-	SshAuthorizedKeys []string `json:"ssh_authorized_keys,omitempty"`
+	SSHAuthorizedKeys []string `json:"ssh_authorized_keys,omitempty"`
 	K3os              K3os     `json:"k3os"`
 }
 
+// K3os k3OS specific config
 type K3os struct {
 	K3sArgs     []string          `json:"k3s_args,omitempty"`
 	Environment map[string]string `json:"environment,omitempty"`
 }
 
+// LoadFromFile loads config from file
 func (c *CloudConfig) LoadFromFile(filename string) *CloudConfig {
 	yamlFile, _ := ioutil.ReadFile(filename)
 	return c.LoadFromBytes(yamlFile)
 }
 
+// LoadFromBytes loads config from a byte slice
 func (c *CloudConfig) LoadFromBytes(content []byte) *CloudConfig {
 	err := yaml.Unmarshal(content, c)
 	if err != nil {
@@ -95,7 +103,8 @@ func (c *CloudConfig) LoadFromBytes(content []byte) *CloudConfig {
 	return c
 }
 
-func NewServerConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
+// NewServerConfig factory method for creating server config
+func NewServerConfig(configTmpl string, target *model.K3OSNode) (*[]byte, error) {
 	tmpl := configTmpl
 	if tmpl == "" {
 		tmpl = ServerConfigTmpl
@@ -103,7 +112,8 @@ func NewServerConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
 	return generateConfig(tmpl, target)
 }
 
-func NewAgentConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
+// NewAgentConfig factory method for creating agent config
+func NewAgentConfig(configTmpl string, target *model.K3OSNode) (*[]byte, error) {
 	tmpl := configTmpl
 	if tmpl == "" {
 		tmpl = AgentConfigTmpl
@@ -111,7 +121,7 @@ func NewAgentConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
 	return generateConfig(tmpl, target)
 }
 
-func generateConfig(configTmpl string, target *pkg.Target) (*[]byte, error) {
+func generateConfig(configTmpl string, target *model.K3OSNode) (*[]byte, error) {
 
 	tmpl, err := template.New("cloud-config").Parse(configTmpl)
 	if err != nil {

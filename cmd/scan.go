@@ -19,11 +19,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package cmd include Cobra commands
 package cmd
 
 import (
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
@@ -61,7 +62,7 @@ and multiple username and password combinations.
 			SSHSettings:       sshSettings(),
 			UserCredentials:   credentials(viper.GetStringSlice(ParamAuth)),
 		}
-		cmdOpFactory := &pkg.CmdOperatorFactory{Create: ssh.NewCmdOperator}
+		cmdOpFactory := &ssh.CmdOperatorFactory{Create: ssh.NewCmdOperator}
 		nodes, err := cmd2.ScanForRaspberries(scanRequest, misc.NewHostScanner(), cmdOpFactory)
 		misc.ExitOnError(err, "node scan failed")
 

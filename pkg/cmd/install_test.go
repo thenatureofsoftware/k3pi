@@ -22,98 +22,13 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
-	"os"
 	"testing"
 )
 
-var nodeYaml = `
-hostname: black-pearl
-address: 127.0.0.1
-arch: armv7l
-auth:
-  type: basic-auth
-  user: pirate
-  password: hypriot
-`
-
-func TestMakeInstaller(t *testing.T) {
-	node := pkg.Node{
-		Address: "0.0.0.0",
-		Auth:    pkg.Auth{},
-		Arch:    "aarch64",
-	}
-
-	server := pkg.Target{
-		SSHAuthorizedKeys: []string{},
-		Node:              &node,
-	}
-	server.Node.Address = "192.168.1.10"
-
-	agentAddresses := []string{"192.168.1.11", "192.168.1.12", "192.168.1.13"}
-	var agents pkg.Targets
-	for _, v := range agentAddresses {
-		agent := node
-		agent.Address = v
-		agents = append(agents, &pkg.Target{
-			SSHAuthorizedKeys: []string{},
-			Node:              &agent,
-		})
-	}
-
-	task := &pkg.InstallTask{
-		DryRun: false,
-		Server: &server,
-		Agents: agents,
-		Templates: &pkg.ConfigTemplates{},
-	}
-
-	resourceDir := MakeResourceDir(task)
-	defer os.RemoveAll(resourceDir)
-
-	installers := MakeInstallers(task, resourceDir)
-
-	want := 4
-	if count := len(installers); count != want {
-		t.Errorf("expected %d installers, got %d", want, count)
-	}
-}
-
-func TestInstaller_Install(t *testing.T) {
-	t.Skip("manual test")
-	node := &pkg.Node{}
-	err := yaml.Unmarshal([]byte(nodeYaml), node)
-	misc.PanicOnError(err, "failed to load node from yaml string")
-
-	node.Address = "192.168.1.128"
-	node.Hostname = "k3pi-1"
-	server := pkg.Target{
-		SSHAuthorizedKeys: []string{
-			"github:larmog",
-		},
-		ServerIP: "192.168.1.126",
-		Node:     node,
-	}
-
-	task := &pkg.InstallTask{
-		DryRun: false,
-		Server: &server,
-		Agents: pkg.Targets{},
-	}
-
-	resourceDir := MakeResourceDir(task)
-	defer os.RemoveAll(resourceDir)
-
-	installer := makeInstaller(task, &server, resourceDir, false)
-
-	_ = installer.Install()
-}
-
 func TestSelectServerAndAgents_No_Match(t *testing.T) {
-	nodes := []*pkg.Node{{}, {}, {}, {}}
+	nodes := []*model.Node{{}, {}, {}, {}}
 	server, agents, err := SelectServerAndAgents(nodes, "missing")
 
 	if err != nil {
@@ -131,7 +46,7 @@ func TestSelectServerAndAgents_No_Match(t *testing.T) {
 }
 
 func TestSelectServerAndAgents_No_Nodes(t *testing.T) {
-	var nodes []*pkg.Node
+	var nodes []*model.Node
 	server, agents, err := SelectServerAndAgents(nodes, "my-server")
 
 	if err != nil {
@@ -150,7 +65,7 @@ func TestSelectServerAndAgents_No_Nodes(t *testing.T) {
 
 func TestSelectServerAndAgents_Match_Hostname(t *testing.T) {
 	hostname := "my-server"
-	nodes := []*pkg.Node{{}, {}, {Hostname: hostname}, {}}
+	nodes := []*model.Node{{}, {}, {Hostname: hostname}, {}}
 	server, agents, err := SelectServerAndAgents(nodes, hostname)
 
 	if err != nil {
@@ -168,9 +83,10 @@ func TestSelectServerAndAgents_Match_Hostname(t *testing.T) {
 }
 
 func TestSelectServerAndAgents_Match_Address(t *testing.T) {
-	address := "my-server"
-	nodes := []*pkg.Node{{Address: address}}
-	server, agents, err := SelectServerAndAgents(nodes, address)
+	ip := "10.0.0.1"
+	address := model.NewAddress(ip, 22)
+	nodes := []*model.Node{{Address: address}}
+	server, agents, err := SelectServerAndAgents(nodes, ip)
 
 	if err != nil {
 		t.Error(errors.Wrap(err, "unexpected error"))

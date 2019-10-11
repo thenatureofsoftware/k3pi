@@ -19,13 +19,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package cmd include Cobra commands
 package cmd
 
 import (
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
-	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
+	pkgcmd "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/install"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/kubernetes-sigs/yaml"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -73,19 +76,23 @@ var installCmd = &cobra.Command{
 		}
 		misc.PanicOnError(err, "error reading input file")
 
-		nodes := []*pkg.Node{}
+		var nodes []*model.Node
 		err = yaml.Unmarshal(bytes, &nodes)
 		misc.ExitOnError(err, "error parsing nodes from file")
 
 		if len(nodes) == 0 {
-			misc.ErrorExitWithMessage("No nodes found in file")
+			misc.ErrorExitWithMessage("no nodes found in file")
 		}
 
+		k3OSVersion := viper.GetString(ParamK3OSVersionBindKey)
+		if len(k3OSVersion) == 0 {
+			misc.ErrorExitWithMessage("k3OS version ( -v|--version ) is empty")
+		}
 		sshKeys := viper.GetStringSlice(ParamSSHKeyInstallBindKey)
 		server := viper.GetString(ParamServer)
 		token := viper.GetString(ParamToken)
-		dryRun := viper.GetBool(ParamDryRun)
-		hostnameSpec := &pkg.HostnameSpec{
+		dryRun := viper.GetBool(ParamInstallDryRunBindKey)
+		hostnameSpec := &install.HostnameSpec{
 			Pattern: viper.GetString(ParamHostnamePattern),
 			Prefix:  viper.GetString(ParamHostnamePrefix),
 		}
@@ -97,15 +104,15 @@ var installCmd = &cobra.Command{
 
 			misc.ErrorExitWithMessage("at least one ssh key is required")
 
-		} else if len(sshKeys) == 1 && sshKeys[0] == cmd2.DefaultSSHAuthorizedKey {
+		} else if len(sshKeys) == 1 && sshKeys[0] == pkgcmd.K3OSDefaultSSHAuthorizedKey {
 
-			idRsaPubFile, err := homedir.Expand(cmd2.DefaultSSHAuthorizedKey)
-			msg := fmt.Sprintf("failed to read default ssh public key: %s", cmd2.DefaultSSHAuthorizedKey)
+			idRsaPubFile, err := homedir.Expand(pkgcmd.K3OSDefaultSSHAuthorizedKey)
+			msg := fmt.Sprintf("failed to read default ssh public key: %s", pkgcmd.K3OSDefaultSSHAuthorizedKey)
 			misc.ExitOnError(err, msg)
 
 			f, err := os.Open(idRsaPubFile)
-			defer f.Close()
 			misc.ExitOnError(err, msg)
+			defer f.Close()
 
 			b, err := ioutil.ReadAll(f)
 			misc.ExitOnError(err, msg)
@@ -114,7 +121,7 @@ var installCmd = &cobra.Command{
 			sshKeys = []string{fmt.Sprintf("%s %s", key[0], key[1])}
 		}
 
-		installArgs := &cmd2.InstallArgs{
+		installArgs := &pkgcmd.InstallArgs{
 			Nodes:        nodes,
 			SSHKeys:      sshKeys,
 			Token:        token,
@@ -122,12 +129,13 @@ var installCmd = &cobra.Command{
 			HostnameSpec: hostnameSpec,
 			DryRun:       dryRun,
 			Confirmed:    viper.GetBool(ParamConfirmInstall),
-			Templates: &pkg.ConfigTemplates{
+			Templates: &install.ConfigTemplates{
 				ServerTmpl: serverConfigTmpl,
 				AgentTmpl:  agentConfigTmpl,
 			},
+			K3OSVersion: k3OSVersion,
 		}
-		err = cmd2.Install(installArgs)
+		err = pkgcmd.Install(installArgs)
 		misc.ExitOnError(err)
 	},
 }
@@ -137,9 +145,9 @@ func loadTemplateFile(configTmplFn string) string {
 		b, err := ioutil.ReadFile(configTmplFn)
 		misc.PanicOnError(err, fmt.Sprintf("error reading template file: %s", configTmplFn))
 		return string(b)
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 func init() {
@@ -155,9 +163,10 @@ func init() {
 	installCmd.Flags().Lookup(ParamFilename).NoOptDefVal = ""
 	installCmd.Flags().String(ParamServerConfigTmpl, "", "server k3OS config.yaml template file")
 	installCmd.Flags().String(ParamAgentConfigTmpl, "", "agent k3OS config.yaml template file")
+	installCmd.Flags().String(ParamVersion, model.DefaultK3OSVersion, fmt.Sprintf("k3OS version, default is %s", model.DefaultK3OSVersion))
 
-	installCmd.Flags().StringSliceP(ParamSSHKey, "k", []string{cmd2.DefaultSSHAuthorizedKey}, "ssh authorized key that should be added to the rancher user")
-	_ = viper.BindPFlag(ParamDryRun, installCmd.Flags().Lookup(ParamDryRun))
+	installCmd.Flags().StringSliceP(ParamSSHKey, "k", []string{pkgcmd.K3OSDefaultSSHAuthorizedKey}, "ssh authorized key that should be added to the rancher user")
+	_ = viper.BindPFlag(ParamInstallDryRunBindKey, installCmd.Flags().Lookup(ParamDryRun))
 	_ = viper.BindPFlag(ParamConfirmInstall, installCmd.Flags().Lookup(ParamConfirmInstall))
 	_ = viper.BindPFlag(ParamFilename, installCmd.Flags().Lookup(ParamFilename))
 	_ = viper.BindPFlag(ParamServer, installCmd.Flags().Lookup(ParamServer))
@@ -167,4 +176,5 @@ func init() {
 	_ = viper.BindPFlag(ParamHostnamePrefix, installCmd.Flags().Lookup(ParamHostnamePrefix))
 	_ = viper.BindPFlag(ParamServerConfigTmpl, installCmd.Flags().Lookup(ParamServerConfigTmpl))
 	_ = viper.BindPFlag(ParamAgentConfigTmpl, installCmd.Flags().Lookup(ParamAgentConfigTmpl))
+	_ = viper.BindPFlag(ParamK3OSVersionBindKey, installCmd.Flags().Lookup(ParamVersion))
 }

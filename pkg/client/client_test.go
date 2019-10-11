@@ -20,31 +20,70 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-// Package misc miscellaneous functionality
-package misc
+package client
 
 import (
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
+	"reflect"
+	"strings"
 	"testing"
 )
 
-func TestCheckError_Should_Panic_On_Error(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Errorf("The code did not panic")
-		} else {
-			fmt.Printf("%v\n", r)
-		}
-	}()
+var (
+	ManualTestAddress = model.NewAddress("192.168.1.111", 22)
+)
 
-	PanicOnError(fmt.Errorf("a wrapped error"), "wrapping error")
+var auth = &model.Auth{
+	Type:   model.AuthTypeSSHKey,
+	User:   "rancher",
+	SSHKey: "~/.ssh/id_rsa",
 }
 
-func TestGenerateToken(t *testing.T) {
-	token := GenerateToken()
-	length := 64
-	if len(token) != length {
-		t.Errorf("tokens should have a length of %d", length)
+func TestNewClientManual(t *testing.T) {
+	t.Skip("manual test")
+
+	c, err := NewClient(auth, &ManualTestAddress)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if reflect.TypeOf(c) != reflect.TypeOf(&client{}) {
+		t.Error("wrong type")
+	}
+}
+
+func TestClientManual_Cmd(t *testing.T) {
+	t.Skip("manual test")
+
+	c, err := NewClient(auth, &ManualTestAddress)
+	if err != nil {
+		t.Error(err)
+	}
+
+	out, err := c.Cmd("whoami").Output()
+	if err != nil {
+		t.Error(err)
+	}
+	expected := auth.User
+	actual := strings.TrimSpace(string(out))
+
+	if expected != actual {
+		t.Error(fmt.Sprintf("expected: %s, actual: %s", expected, actual))
+	}
+}
+
+func TestClientManual_Copy(t *testing.T) {
+	t.Skip("manual test")
+	c, err := NewClient(auth, &ManualTestAddress)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = c.Copy("./README.md", "~/README.md")
+
+	if err != nil {
+		t.Error(err)
 	}
 }

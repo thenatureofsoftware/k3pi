@@ -20,31 +20,33 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-// Package misc miscellaneous functionality
-package misc
+// Package cmd top package for handling Use Cases
+package cmd
 
 import (
 	"fmt"
-	"testing"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/install"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 )
 
-func TestCheckError_Should_Panic_On_Error(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Errorf("The code did not panic")
-		} else {
-			fmt.Printf("%v\n", r)
-		}
-	}()
+// UpgradeK3s upgrades k3s on a set of k3OS nodes
+func UpgradeK3s(version string, nodes model.Nodes, dryRun bool) error {
 
-	PanicOnError(fmt.Errorf("a wrapped error"), "wrapping error")
-}
-
-func TestGenerateToken(t *testing.T) {
-	token := GenerateToken()
-	length := 64
-	if len(token) != length {
-		t.Errorf("tokens should have a length of %d", length)
+	task := &install.K3sUpgradeTask{
+		Task:          model.Task{DryRun: dryRun},
+		Version:       version,
+		Nodes:         nodes,
+		ClientFactory: clientFactory,
 	}
+
+	factory := installerFactories.GetFactory(task)
+	if factory == nil {
+		fmt.Errorf("no installer factory found for task type: %T", task)
+	}
+
+	resourceDir := install.MakeResourceDir(task)
+
+	installers := factory.MakeInstallers(task, resourceDir)
+
+	return install.Run(installers)
 }

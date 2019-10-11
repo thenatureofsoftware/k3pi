@@ -23,8 +23,8 @@ package config
 
 import (
 	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/kubernetes-sigs/yaml"
 	"testing"
 )
@@ -66,7 +66,7 @@ func TestCloudConfig_LoadFrom(t *testing.T) {
 	}
 
 	expectedSize := 2
-	acctualSize := len(cloudConfig.SshAuthorizedKeys)
+	acctualSize := len(cloudConfig.SSHAuthorizedKeys)
 	if acctualSize != expectedSize {
 		t.Errorf("expected %d keys, found %d", expectedSize, acctualSize)
 	}
@@ -88,26 +88,26 @@ func TestNewServerConfig(t *testing.T) {
 	// This is what we wan't
 	want := CloudConfig{
 		Hostname:          "k3s-server",
-		SshAuthorizedKeys: []string{"github:foobar"},
+		SSHAuthorizedKeys: []string{"github:foobar"},
 		K3os: K3os{
 			K3sArgs: []string{
 				"server",
 				"--bind-address",
-				"127.0.0.1",
+				"10.0.0.1",
 			},
 		},
 	}
 
 	// Generate
-	node := &pkg.Node{
+	node := &model.Node{
 		Hostname: "k3s-server",
-		Address:  "127.0.0.1",
-		Auth:     pkg.Auth{},
+		Address:  model.ParseAddress("10.0.0.1:22"),
+		Auth:     model.Auth{},
 		Arch:     "aarch64",
 	}
-	configAsBytes, err := NewServerConfig("", &pkg.Target{
+	configAsBytes, err := NewServerConfig("", &model.K3OSNode{
 		SSHAuthorizedKeys: []string{"github:foobar"},
-		Node:              node,
+		Node:              *node,
 	})
 
 	if err != nil {
@@ -128,7 +128,9 @@ func TestNewServerConfig(t *testing.T) {
 func TestNewAgentConfig(t *testing.T) {
 	var nodeYaml = `
 hostname: test
-address: 127.0.0.1
+address:
+  ip: 127.0.0.1
+  port: 22
 arch: armv7l
 auth:
   password: secret
@@ -136,14 +138,14 @@ auth:
   user: root
 `
 
-	node := &pkg.Node{}
+	node := &model.Node{}
 	err := yaml.Unmarshal([]byte(nodeYaml), node)
 	misc.PanicOnError(err, "failed to unmarshal node")
-	serverIp := "127.0.0.2"
-	configAsBytes, err := NewAgentConfig("", &pkg.Target{
+	serverIP := "127.0.0.2"
+	configAsBytes, err := NewAgentConfig("", &model.K3OSNode{
 		SSHAuthorizedKeys: []string{"github:foobar"},
-		Node:              node,
-		ServerIP:          serverIp,
+		Node:              *node,
+		ServerIP:          serverIP,
 	})
 	misc.PanicOnError(err, "failed to create agent config")
 	fmt.Println(string(*configAsBytes))

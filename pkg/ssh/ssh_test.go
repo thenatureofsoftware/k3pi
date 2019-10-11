@@ -22,8 +22,7 @@ THE SOFTWARE.
 package ssh
 
 import (
-	"fmt"
-	"github.com/TheNatureOfSoftware/k3pi/pkg"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"io/ioutil"
 	"log"
 	"os"
@@ -75,8 +74,8 @@ func TestRunCommand(t *testing.T) {
 
 	defer closeHandler()
 
-	ctx := &pkg.CmdOperatorCtx{
-		Address:         fmt.Sprintf("%s:%s", "192.168.1.31", settings.Port),
+	ctx := &CmdOperatorCtx{
+		Address:         model.NewAddressStr("192.168.1.31", settings.Port),
 		SSHClientConfig: config,
 		EnableStdOut:    false,
 	}
