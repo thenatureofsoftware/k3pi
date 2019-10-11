@@ -36,7 +36,7 @@ func TestInstallerFactories_GetFactory(t *testing.T) {
 func TestWaitForNode(t *testing.T) {
 	t.Skip("manual test")
 	node := &model.Node{
-		Address: "192.168.1.111",
+		Address: model.NewAddress("192.168.1.111", 22),
 	}
 	sshSettings := &ssh.Settings{
 		User:    "pirate",

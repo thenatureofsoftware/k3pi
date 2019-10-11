@@ -6,26 +6,24 @@ import (
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 )
 
-func NewFakeClient(auth *model.Auth, ip string, port int) (Client, error) {
+func NewFakeClient(auth *model.Auth, address *model.Address) (Client, error) {
 	return &fakeClient{
 		auth: auth,
-		ip:   ip,
-		port: port,
+		address: address,
 	}, nil
 }
 
 type fakeClient struct {
 	auth *model.Auth
-	ip   string
-	port int
+	address *model.Address
 }
 
 func (f *fakeClient) Copy(filename, remotePath string) error {
 	fmt.Printf("scp -i %s -P %d -o StrictHostKeyChecking=no %s %s\n",
 		f.auth.SSHKey,
-		f.port,
+		f.address.Port,
 		filename,
-		fmt.Sprintf("%s@%s:%s", f.auth.User, f.ip, remotePath))
+		fmt.Sprintf("%s@%s:%s", f.auth.User, f.address.IP, remotePath))
 	return nil
 }
 

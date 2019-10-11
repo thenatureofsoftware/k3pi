@@ -83,9 +83,10 @@ func TestSelectServerAndAgents_Match_Hostname(t *testing.T) {
 }
 
 func TestSelectServerAndAgents_Match_Address(t *testing.T) {
-	address := "my-server"
+	ip := "10.0.0.1"
+	address := model.NewAddress(ip, 22)
 	nodes := []*model.Node{{Address: address}}
-	server, agents, err := SelectServerAndAgents(nodes, address)
+	server, agents, err := SelectServerAndAgents(nodes, ip)
 
 	if err != nil {
 		t.Error(errors.Wrap(err, "unexpected error"))

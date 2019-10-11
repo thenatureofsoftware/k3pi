@@ -102,7 +102,7 @@ func WaitForNode(node *model.Node, sshSettings *ssh.Settings, timeout time.Durat
 	defer sshAgentCloseHandler()
 
 	ctx := &ssh.CmdOperatorCtx{
-		Address:         fmt.Sprintf("%s:%s", node.Address, resolvedSSHSettings.Port),
+		Address:         model.NewAddressStr(node.Address.IP, resolvedSSHSettings.Port),
 		SSHClientConfig: clientConfig,
 		EnableStdOut:    false,
 	}

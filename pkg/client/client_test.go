@@ -30,8 +30,8 @@ import (
 	"testing"
 )
 
-const (
-	ManualTestIP = "192.168.1.111"
+var (
+	ManualTestAddress = model.NewAddress("192.168.1.111", 22)
 )
 
 var auth = &model.Auth{
@@ -43,7 +43,7 @@ var auth = &model.Auth{
 func TestNewClientManual(t *testing.T) {
 	t.Skip("manual test")
 
-	c, err := NewClient(auth, ManualTestIP, 22)
+	c, err := NewClient(auth, &ManualTestAddress)
 
 	if err != nil {
 		t.Error(err)
@@ -57,7 +57,7 @@ func TestNewClientManual(t *testing.T) {
 func TestClientManual_Cmd(t *testing.T) {
 	t.Skip("manual test")
 
-	c, err := NewClient(auth, ManualTestIP, 22)
+	c, err := NewClient(auth, &ManualTestAddress)
 	if err != nil {
 		t.Error(err)
 	}
@@ -76,7 +76,7 @@ func TestClientManual_Cmd(t *testing.T) {
 
 func TestClientManual_Copy(t *testing.T) {
 	t.Skip("manual test")
-	c, err := NewClient(auth, ManualTestIP, 22)
+	c, err := NewClient(auth, &ManualTestAddress)
 	if err != nil {
 		t.Error(err)
 	}

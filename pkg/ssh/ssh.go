@@ -214,7 +214,7 @@ func (d dryRunCmdRunner) Execute(command string) (*Result, error) {
 }
 
 func NewCmdOperator(ctx *CmdOperatorCtx) (CmdOperator, error) {
-	client, err := ssh.Dial("tcp", ctx.Address, ctx.SSHClientConfig)
+	client, err := ssh.Dial("tcp", ctx.Address.String(), ctx.SSHClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +228,7 @@ func NewCmdOperator(ctx *CmdOperatorCtx) (CmdOperator, error) {
 }
 
 func NewDryRunCmdOperator(ctx *CmdOperatorCtx) (CmdOperator, error) {
-	client, err := ssh.Dial("tcp", ctx.Address, ctx.SSHClientConfig)
+	client, err := ssh.Dial("tcp", ctx.Address.String(), ctx.SSHClientConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("failed to connect to %s", ctx.Address))
 	}

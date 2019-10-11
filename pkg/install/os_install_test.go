@@ -3,6 +3,7 @@ package install
 import (
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
+	"github.com/TheNatureOfSoftware/k3pi/test"
 	"github.com/kubernetes-sigs/yaml"
 	"os"
 	"testing"
@@ -20,38 +21,31 @@ auth:
 
 func TestOSInstallerFactory_MakeInstallers(t *testing.T) {
 
-	node := model.Node{
-		Address: "0.0.0.0",
-		Auth:    model.Auth{},
-		Arch:    "aarch64",
-	}
+	testNodes := test.CreateNodes()
 
 	server := model.K3OSNode{
 		SSHAuthorizedKeys: []string{},
-		Node:              node,
+		Node:              *testNodes[0],
 	}
 
-	server.Node.Address = "192.168.1.10"
-
-	agentAddresses := []string{"192.168.1.11", "192.168.1.12", "192.168.1.13"}
+	agentNodes := testNodes[1:]
 	var agents model.K3OSNodes
-	for _, v := range agentAddresses {
-		agent := node
-		agent.Address = v
+	for _, v := range agentNodes {
+		agent := *v
 		agents = append(agents, &model.K3OSNode{
 			SSHAuthorizedKeys: []string{},
 			Node:              agent,
 		})
 	}
 
-	task := NewOSInstallTask(&server, agents, &ConfigTemplates{}, false)
+	task := NewOSInstallTask(&server, agents, &ConfigTemplates{}, model.DefaultK3OSVersion, false)
 
 	resourceDir := MakeResourceDir(task)
 	defer os.RemoveAll(resourceDir)
 
 	installers := OSInstallerFactory{}.MakeInstallers(task, resourceDir)
 
-	want := 4
+	want := len(testNodes)
 	if count := len(installers); count != want {
 		t.Errorf("expected %d installers, got %d", want, count)
 	}
@@ -63,7 +57,7 @@ func TestOSInstaller_Install(t *testing.T) {
 	err := yaml.Unmarshal([]byte(nodeYaml), node)
 	misc.PanicOnError(err, "failed to load node from yaml string")
 
-	node.Address = "192.168.1.128"
+	node.Address = model.NewAddress("192.168.1.128", 22)
 	node.Hostname = "k3pi-1"
 	server := model.K3OSNode{
 		SSHAuthorizedKeys: []string{

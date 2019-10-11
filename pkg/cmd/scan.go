@@ -24,7 +24,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	ssh2 "github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
@@ -60,9 +59,10 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 	defer closeSSHAgent()
 
 	raspberries := []model.Node{}
+
 	for i := range *alive {
-		ip := (*alive)[i]
-		address := fmt.Sprintf("%s:%s", ip, settings.Port)
+		address := model.NewAddressStr((*alive)[i], settings.Port)
+
 		ctx := &ssh2.CmdOperatorCtx{
 			Address:         address,
 			SSHClientConfig: config,
@@ -73,7 +73,7 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 			if hn, ok := checkIfHostnameMatch(request.HostnameSubString, ctx, cmdOperatorFactory); ok {
 				raspberries = append(raspberries, model.Node{
 					Hostname: hn,
-					Address:  ip,
+					Address:  address,
 					Arch:     arch,
 					Auth: model.Auth{
 						Type:   "ssh-key",
@@ -91,7 +91,7 @@ func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdO
 					if hn, ok := checkIfHostnameMatch(request.HostnameSubString, &altCtx, cmdOperatorFactory); ok {
 						raspberries = append(raspberries, model.Node{
 							Hostname: hn,
-							Address:  ip,
+							Address: address,
 							Arch:     arch,
 							Auth: model.Auth{
 								Type:     "basic-auth",

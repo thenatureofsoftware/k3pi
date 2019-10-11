@@ -41,7 +41,7 @@ k3os:
   k3s_args:
   - server
   - "--bind-address"
-  - "{{.Node.Address}}"
+  - "{{.Node.Address.IP}}"
   token: {{.Token}}
   password: rancher
   dns_nameservers:
@@ -60,7 +60,7 @@ k3os:
   k3s_args:
   - agent
   - "--node-ip"
-  - "{{.Node.Address}}"
+  - "{{.Node.Address.IP}}"
   server_url: https://{{.ServerIP}}:6443
   token: {{.Token}}
   password: rancher

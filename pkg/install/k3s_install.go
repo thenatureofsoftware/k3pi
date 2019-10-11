@@ -89,7 +89,7 @@ type k3sInstaller struct {
 func (ins *k3sInstaller) Install() error {
 	node := ins.node
 
-	nodeClient, err := ins.task.ClientFactory.Create(&node.Auth, node.Address, 22)
+	nodeClient, err := ins.task.ClientFactory.Create(&node.Auth, &node.Address)
 	if err != nil {
 		return err
 	}

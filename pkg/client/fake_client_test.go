@@ -8,7 +8,8 @@ import (
 
 func TestNewFakeClient(t *testing.T) {
 
-	client, err := NewFakeClient(&model.Auth{}, "10.0.0.1", 22)
+	address := model.NewAddress("10.0.0.1", 22)
+	client, err := NewFakeClient(&model.Auth{}, &address)
 
 	if err != nil {
 		t.Error(err)

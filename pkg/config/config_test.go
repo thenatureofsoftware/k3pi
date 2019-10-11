@@ -93,7 +93,7 @@ func TestNewServerConfig(t *testing.T) {
 			K3sArgs: []string{
 				"server",
 				"--bind-address",
-				"127.0.0.1",
+				"10.0.0.1",
 			},
 		},
 	}
@@ -101,7 +101,7 @@ func TestNewServerConfig(t *testing.T) {
 	// Generate
 	node := &model.Node{
 		Hostname: "k3s-server",
-		Address:  "127.0.0.1",
+		Address:  model.ParseAddress("10.0.0.1:22"),
 		Auth:     model.Auth{},
 		Arch:     "aarch64",
 	}
@@ -128,7 +128,9 @@ func TestNewServerConfig(t *testing.T) {
 func TestNewAgentConfig(t *testing.T) {
 	var nodeYaml = `
 hostname: test
-address: 127.0.0.1
+address:
+  ip: 127.0.0.1
+  port: 22
 arch: armv7l
 auth:
   password: secret

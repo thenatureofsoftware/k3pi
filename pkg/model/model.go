@@ -1,8 +1,13 @@
 package model
 
-import "strings"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 const (
+	DefaultK3OSVersion = "v0.3.0"
 	// AuthTypeSSHKey ssh private key authentication
 	AuthTypeSSHKey = "ssh-key"
 	// AuthTypeBasicAuth username / password authentication
@@ -61,6 +66,44 @@ func (inf *InstallerFactories) GetFactory(task interface{}) InstallerFactory {
 	return nil
 }
 
+// Address address for SSH access
+type Address struct {
+	IP string `json:"ip"`
+	Port int `json:"port"`
+}
+
+// String address as string <ip>:<port>
+func (a Address) String() string {
+	return fmt.Sprintf("%s:%d", a.IP, a.Port)
+}
+
+// NewAddress creates a new address from ip and port
+func NewAddress(ip string, port int) Address {
+	return Address{
+		IP:   ip,
+		Port: port,
+	}
+}
+
+// NewAddress creates a new address from ip and port strings
+func NewAddressStr(ip, port string) Address {
+	return ParseAddress(fmt.Sprintf("%s:%s", ip, port))
+}
+
+// ParseAddress parses an address from a string "<ip>:<port>"
+func ParseAddress(s string) Address {
+	parts := strings.Split(s,":")
+	if len(parts) != 2 {
+		return Address{}
+	}
+
+	port, _ := strconv.Atoi(parts[1])
+	return Address{
+		IP:   parts[0],
+		Port: port,
+	}
+}
+
 // Node authentication
 type Auth struct {
 	Type     string `json:"type"`
@@ -72,7 +115,7 @@ type Auth struct {
 // Represents a machine witn an IP and authentication for SSH access
 type Node struct {
 	Hostname string `json:"hostname"`
-	Address  string `json:"address"`
+	Address Address `json:"address"`
 	Auth     Auth   `json:"auth"`
 	Arch     string `json:"arch"`
 }
@@ -115,7 +158,7 @@ func (nodes *Nodes) Info(collect func(node *Node) string) []string {
 func (nodes *Nodes) IPAddresses() []string {
 	var ipAddresses []string
 	for _, v := range *nodes {
-		ipAddresses = append(ipAddresses, v.Address)
+		ipAddresses = append(ipAddresses, v.Address.IP)
 	}
 	return ipAddresses
 }

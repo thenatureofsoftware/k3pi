@@ -59,7 +59,7 @@ func TestCopyKubeconfig(t *testing.T) {
 	t.Skip("manual test")
 
 	node := &model.Node{
-		Address: "192.168.1.111",
+		Address: model.ParseAddress("192.168.1.111:22"),
 	}
 
 	fn := CreateTempFileName("", "k3s-*.yaml")

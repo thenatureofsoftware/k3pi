@@ -51,7 +51,7 @@ var upgradeCmd = &cobra.Command{
 
 		dryRun := viper.GetBool(ParamDryRun)
 		fn := viper.GetString(ParamUpgradeFilename)
-		targetVersion := viper.GetString(ParamTargetVersion)
+		targetVersion := viper.GetString(ParamVersion)
 
 		if misc.DataPipedIn() {
 			bytes, err = ioutil.ReadAll(os.Stdin)
@@ -82,11 +82,11 @@ func init() {
 	rootCmd.AddCommand(upgradeCmd)
 
 	upgradeCmd.Flags().Bool(ParamDryRun, false, "if true will run the install but not execute commands")
-	upgradeCmd.Flags().StringP(ParamTargetVersion, "t", "", "target k3s version")
+	upgradeCmd.Flags().StringP(ParamVersion, "t", "", "target k3s version")
 	upgradeCmd.Flags().StringP(ParamFilename, "f", "", "scan output file with all nodes")
-	_ = upgradeCmd.MarkFlagRequired(ParamTargetVersion)
+	_ = upgradeCmd.MarkFlagRequired(ParamVersion)
 
 	_ = viper.BindPFlag(ParamDryRun, upgradeCmd.Flags().Lookup(ParamDryRun))
-	_ = viper.BindPFlag(ParamTargetVersion, upgradeCmd.Flags().Lookup(ParamTargetVersion))
+	_ = viper.BindPFlag(ParamVersion, upgradeCmd.Flags().Lookup(ParamVersion))
 	_ = viper.BindPFlag(ParamUpgradeFilename, upgradeCmd.Flags().Lookup(ParamFilename))
 }

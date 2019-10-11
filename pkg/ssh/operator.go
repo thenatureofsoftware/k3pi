@@ -1,6 +1,9 @@
 package ssh
 
-import "golang.org/x/crypto/ssh"
+import (
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
+	"golang.org/x/crypto/ssh"
+)
 
 // The stdin and stdout from executing a command.
 type Result struct {
@@ -9,7 +12,7 @@ type Result struct {
 }
 
 type CmdOperatorCtx struct {
-	Address         string
+	Address         model.Address
 	SSHClientConfig *ssh.ClientConfig
 	EnableStdOut    bool
 }

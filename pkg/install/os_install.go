@@ -42,6 +42,7 @@ type OSInstallTask struct {
 	model.Task
 	Server    *model.K3OSNode
 	Agents    model.K3OSNodes
+	Version string
 	Templates *ConfigTemplates
 }
 
@@ -93,21 +94,22 @@ func (task *OSInstallTask) GetImageCheckSumFilename(arch string) string {
 
 // returns image file url given an architecture (arm, arm64)
 func (task *OSInstallTask) GetImageFileUrl(arch string) string {
-	return fmt.Sprintf(K3OSReleaseUrlTmpl, "v0.3.0", task.GetImageFilename(arch))
+	return fmt.Sprintf(K3OSReleaseUrlTmpl, task.Version, task.GetImageFilename(arch))
 }
 
 // returns image check sum file url given an architecture (arm, arm64)
 func (task *OSInstallTask) GetImageCheckSumUrl(arch string) string {
-	return fmt.Sprintf(K3OSReleaseUrlTmpl, "v0.3.0", task.GetImageCheckSumFilename(arch))
+	return fmt.Sprintf(K3OSReleaseUrlTmpl, task.Version, task.GetImageCheckSumFilename(arch))
 }
 
 // creates a new task for installing k3OS
-func NewOSInstallTask(server *model.K3OSNode, agents model.K3OSNodes, templates *ConfigTemplates, dryRun bool) *OSInstallTask {
+func NewOSInstallTask(server *model.K3OSNode, agents model.K3OSNodes, templates *ConfigTemplates, version string, dryRun bool) *OSInstallTask {
 	return &OSInstallTask{
 		Task:      model.Task{DryRun: dryRun},
 		Server:    server,
 		Agents:    agents,
 		Templates: templates,
+		Version: version,
 	}
 }
 
@@ -179,9 +181,8 @@ func (ins *installer) Install() error {
 	defer sshAgentCloseHandler()
 
 	address := ins.target.Node.Address
-	sshAddress := fmt.Sprintf("%s:%d", address, 22)
 
-	scpClient := scp.NewClient(sshAddress, sshConfig)
+	scpClient := scp.NewClient(address.String(), sshConfig)
 	err = scpClient.Connect()
 	misc.PanicOnError(err, fmt.Sprintf("scp client failed to connect to %s", address))
 
@@ -204,7 +205,7 @@ func (ins *installer) Install() error {
 	misc.PanicOnError(err, "failed to copy config file")
 
 	ctx := &ssh.CmdOperatorCtx{
-		Address:         sshAddress,
+		Address:         address,
 		SSHClientConfig: sshConfig,
 		EnableStdOut:    false,
 	}

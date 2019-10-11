@@ -35,7 +35,7 @@ import (
 
 // Factory factory for creating new clients
 type Factory struct {
-	Create func(auth *model.Auth, ip string, port int) (Client, error)
+	Create func(auth *model.Auth, address *model.Address) (Client, error)
 }
 
 // Client runs commands an copies files
@@ -52,17 +52,16 @@ type Script interface {
 	Output() ([]byte, error)
 }
 
-func NewClient(auth *model.Auth, ip string, port int) (Client, error) {
+func NewClient(auth *model.Auth, address *model.Address) (Client, error) {
 
 	var sshClient *sshclient.Client
 	var err error
-	address := fmt.Sprintf("%s:%d", ip, port)
 	if auth.Type == model.AuthTypeSSHKey {
 		privateKeyFile, err := homedir.Expand(auth.SSHKey)
 		misc.PanicOnError(err, "failed to expand ssh key file path")
-		sshClient, err = sshclient.DialWithKey(address, auth.User, privateKeyFile)
+		sshClient, err = sshclient.DialWithKey(address.String(), auth.User, privateKeyFile)
 	} else {
-		sshClient, err = sshclient.DialWithPasswd(address, auth.User, auth.Password)
+		sshClient, err = sshclient.DialWithPasswd(address.String(), auth.User, auth.Password)
 	}
 
 	if err != nil {
@@ -75,8 +74,7 @@ func NewClient(auth *model.Auth, ip string, port int) (Client, error) {
 
 	c := &client{
 		auth:      auth,
-		ip:        ip,
-		port:      port,
+		address: address,
 		sshClient: sshClient,
 	}
 
@@ -86,8 +84,7 @@ func NewClient(auth *model.Auth, ip string, port int) (Client, error) {
 type client struct {
 	sshClient *sshclient.Client
 	auth      *model.Auth
-	ip        string
-	port      int
+	address *model.Address
 }
 
 func (c *client) Cmd(cmd string) Script {
@@ -110,11 +107,11 @@ func (c *client) Copy(filename, remotePath string) error {
 		"-i",
 		c.auth.SSHKey,
 		"-P",
-		fmt.Sprintf("%d", c.port),
+		fmt.Sprintf("%d", c.address.Port),
 		"-o",
 		"StrictHostKeyChecking=no",
 		filename,
-		fmt.Sprintf("%s@%s:%s", c.auth.User, c.ip, remotePath)).CombinedOutput()
+		fmt.Sprintf("%s@%s:%s", c.auth.User, c.address.IP, remotePath)).CombinedOutput()
 
 	if err != nil {
 		return fmt.Errorf(strings.TrimSpace(string(out)))

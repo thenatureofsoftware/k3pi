@@ -47,6 +47,7 @@ type InstallArgs struct {
 	*install.HostnameSpec
 	DryRun, Confirmed bool
 	Templates         *install.ConfigTemplates
+	K3OSVersion string
 }
 
 // Install installs k3os on all nodes.
@@ -91,7 +92,7 @@ func Install(args *InstallArgs) error {
 
 	if serverNode != nil {
 		serverTarget = model.NewK3OSNode(serverNode, args.SSHKeys, token)
-		agentTargets.SetServerIP(serverNode.Address)
+		agentTargets.SetServerIP(serverNode.Address.IP)
 	} else {
 		serverIP := net.ParseIP(args.ServerID)
 		if serverIP == nil {
@@ -100,7 +101,7 @@ func Install(args *InstallArgs) error {
 		agentTargets.SetServerIP(serverIP.String())
 	}
 
-	installTask := install.NewOSInstallTask(serverTarget, agentTargets, args.Templates, args.DryRun)
+	installTask := install.NewOSInstallTask(serverTarget, agentTargets, args.Templates, args.K3OSVersion, args.DryRun)
 
 	resourceDir := install.MakeResourceDir(installTask)
 	defer os.RemoveAll(resourceDir)
@@ -159,7 +160,7 @@ func SelectServerAndAgents(nodes model.Nodes, serverID string) (*model.Node, mod
 	var agentNodes model.Nodes
 
 	for _, node := range nodes {
-		if node.Hostname == serverID || node.Address == serverID {
+		if node.Hostname == serverID || node.Address.IP == serverID {
 			serverNode = node
 		} else {
 			agentNodes = append(agentNodes, node)

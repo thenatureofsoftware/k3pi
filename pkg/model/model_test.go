@@ -17,14 +17,20 @@ func TestNode_Marshal(t *testing.T) {
 	sshKey := "~/.ssh/id_rsa"
 	password := "secret"
 	hostname := "black-pearl"
-	ipAddress := "127.0.0.1"
+	ip := "127.0.0.1"
+	port := 22
 	authType := "ssh-key"
 	user := "john"
 	arch := "aarch64"
 
+	address := Address{
+		IP:   ip,
+		Port: port,
+	}
+
 	node := &Node{
 		Hostname: hostname,
-		Address:  ipAddress,
+		Address:  address,
 		Auth: Auth{
 			Type:     authType,
 			User:     user,
@@ -44,8 +50,8 @@ func TestNode_Marshal(t *testing.T) {
 		t.Errorf(msg, hostname, actual)
 	}
 
-	if actual := node2.Address; ipAddress != actual {
-		t.Errorf(msg, ipAddress, actual)
+	if actual := node2.Address; address != actual {
+		t.Errorf(msg, address, actual)
 	}
 
 	if actual := node2.Auth.Type; authType != actual {
