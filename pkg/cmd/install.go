@@ -128,7 +128,14 @@ func Install(args *InstallArgs) error {
 	}
 
 	if serverNode != nil && !args.DryRun {
-		if err = install.WaitForNode(serverNode, nil, time.Second*60); err == nil {
+
+		serverNode.Auth = model.Auth{
+			Type:     model.AuthTypeSSHKey,
+			User:     "rancher",
+			SSHKey:   "~/.ssh/id_rsa",
+		}
+
+		if err = install.WaitForNode(clientFactory, serverNode, time.Second*60); err == nil {
 
 			var waitForNodeErr error
 			fmt.Printf("Waiting for kubeconfig ... ")

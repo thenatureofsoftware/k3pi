@@ -113,6 +113,8 @@ type Auth struct {
 	SSHKey   string `json:"ssh_key,omitempty"`
 }
 
+type Auths []*Auth
+
 // Node represents a machine witn an IP and authentication for SSH access
 type Node struct {
 	Hostname string  `json:"hostname"`

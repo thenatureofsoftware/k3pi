@@ -16,8 +16,8 @@ func TestNewFakeClient(t *testing.T) {
 	}
 
 	script := client.Cmd("whoami")
-	fs := script.(*fakeScript)
-	fs.output = "testuser"
+	fs := script.(*FakeScript)
+	fs.CmdResults = []string{"testuser"}
 
 	output, err := script.Output()
 	if err != nil {

@@ -2,8 +2,8 @@ package install
 
 import (
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/client"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"testing"
 	"time"
 )
@@ -34,16 +34,18 @@ func TestInstallerFactories_GetFactory(t *testing.T) {
 }
 
 func TestWaitForNode(t *testing.T) {
-	t.Skip("manual test")
+	clientFactor := client.Factory{Create: func(auth *model.Auth, address *model.Address) (i client.Client, e error) {
+		return &client.FakeClient{}, nil
+	}}
 	node := &model.Node{
+		Auth: model.Auth{
+			Type:     model.AuthTypeSSHKey,
+			User:     "rancher",
+			SSHKey:   "~/.ssh/id_rsa",
+		},
 		Address: model.NewAddress("192.168.1.111", 22),
 	}
-	sshSettings := &ssh.Settings{
-		User:    "pirate",
-		KeyPath: "~/.ssh/id_rsa",
-		Port:    "22",
-	}
-	err := WaitForNode(node, sshSettings, time.Second*10)
+	err := WaitForNode(clientFactor, node, time.Second*10)
 	if err != nil {
 		t.Error(err)
 	}
