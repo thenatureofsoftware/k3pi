@@ -28,13 +28,14 @@ import (
 	"github.com/TheNatureOfSoftware/go-sshclient"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
-	ssh2 "github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"github.com/bramvdbogaerde/go-scp"
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // Factory factory for creating new clients
@@ -118,7 +119,7 @@ func (c *client) Copy(filename, remotePath string) error {
 }
 
 func (c *client) copyWithPassword(filename string, remotePath string) ([]byte, error) {
-	config, closeHandler := ssh2.PasswordClientConfig(c.auth.User, c.auth.Password)
+	config, closeHandler := passwordClientConfig(c.auth.User, c.auth.Password)
 	defer closeHandler()
 
 	scpClient := scp.NewClient(c.address.String(), config)
@@ -135,6 +136,15 @@ func (c *client) copyWithPassword(filename string, remotePath string) ([]byte, e
 	var out []byte
 
 	return out, err
+}
+
+func passwordClientConfig(username string, password string) (*ssh.ClientConfig, func() error) {
+	return &ssh.ClientConfig{
+		User:            username,
+		Auth:            []ssh.AuthMethod{ssh.Password(password)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         time.Second * 3,
+	}, func() error { return nil }
 }
 
 func (c *client) copyWithKey(filename string, remotePath string) ([]byte, error) {

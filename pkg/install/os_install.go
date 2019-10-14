@@ -6,7 +6,6 @@ import (
 	"github.com/TheNatureOfSoftware/k3pi/pkg/config"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"github.com/pkg/errors"
 	"strings"
 )
@@ -138,19 +137,19 @@ func makeInstaller(task *OSInstallTask, k3OSNode *model.K3OSNode, resourceDir st
 
 	misc.PanicOnError(err, "failed to create server install")
 
-	cmdOperatorFactory := &ssh.CmdOperatorFactory{}
-	if task.DryRun {
-		cmdOperatorFactory.Create = ssh.NewDryRunCmdOperator
-	} else {
-		cmdOperatorFactory.Create = ssh.NewCmdOperator
-	}
+	//cmdOperatorFactory := &ssh.CmdOperatorFactory{}
+	//if task.DryRun {
+	//	cmdOperatorFactory.Create = ssh.NewDryRunCmdOperator
+	//} else {
+	//	cmdOperatorFactory.Create = ssh.NewCmdOperator
+	//}
 
 	return &installer{
 		task:            task,
 		resourceDir:     resourceDir,
 		config:          configYaml,
 		target:          k3OSNode,
-		operatorFactory: cmdOperatorFactory,
+		//operatorFactory: cmdOperatorFactory,
 	}
 }
 
@@ -159,7 +158,7 @@ type installer struct {
 	resourceDir     string
 	config          *[]byte
 	target          *model.K3OSNode
-	operatorFactory *ssh.CmdOperatorFactory
+	//operatorFactory *ssh.CmdOperatorFactory
 }
 
 // Install installs k3OS

@@ -27,8 +27,9 @@ import (
 	"fmt"
 	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/kubernetes-sigs/yaml"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"strings"
@@ -56,14 +57,24 @@ and multiple username and password combinations.
 	$ k3pi scan --substr pearl
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+
+		keyPath, err := homedir.Expand(viper.GetString(ParamSSHKey))
+		if err != nil {
+			misc.ErrorExitWithError(err)
+		}
 		scanRequest := &cmd2.ScanRequest{
 			Cidr:              viper.GetString(ParamCIDR),
 			HostnameSubString: viper.GetString(ParamHostnameSubstring),
-			SSHSettings:       sshSettings(),
+			Port:              viper.GetInt(ParamSSHPort),
+			SSHAuth: &model.Auth{
+				Type:   model.AuthTypeSSHKey,
+				User:   viper.GetString(ParamUser),
+				SSHKey: keyPath,
+			},
 			UserCredentials:   credentials(viper.GetStringSlice(ParamAuth)),
 		}
-		cmdOpFactory := &ssh.CmdOperatorFactory{Create: ssh.NewCmdOperator}
-		nodes, err := cmd2.ScanForRaspberries(scanRequest, misc.NewHostScanner(), cmdOpFactory)
+
+		nodes, err := cmd2.ScanForNodes(scanRequest, misc.NewHostScanner())
 		misc.ExitOnError(err, "node scan failed")
 
 		y, err := yaml.Marshal(nodes)
@@ -101,9 +112,3 @@ func init() {
 	_ = viper.BindPFlag(ParamAuth, scanCmd.Flags().Lookup(ParamAuth))
 }
 
-func sshSettings() *ssh.Settings {
-	return &ssh.Settings{
-		KeyPath: viper.GetString(ParamSSHKey),
-		User:    viper.GetString(ParamUser),
-		Port:    viper.GetString(ParamSSHPort)}
-}
