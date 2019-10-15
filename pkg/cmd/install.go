@@ -25,6 +25,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/client"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/install"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
@@ -102,14 +103,16 @@ func Install(args *InstallArgs) error {
 	}
 
 	installTask := &install.OSInstallTask{
-		Task: model.Task{
-			DryRun: args.DryRun,
+		OSImageTask: install.OSImageTask{
+			Task: model.Task{
+				DryRun: args.DryRun,
+			},
+			Version:       args.K3OSVersion,
+			ClientFactory: client.NewClientFactory(),
 		},
-		Server:        serverTarget,
-		Agents:        agentTargets,
-		Version:       args.K3OSVersion,
-		Templates:     args.Templates,
-		ClientFactory: clientFactory,
+		Server:    serverTarget,
+		Agents:    agentTargets,
+		Templates: args.Templates,
 	}
 
 	resourceDir := install.MakeResourceDir(installTask)
@@ -130,12 +133,12 @@ func Install(args *InstallArgs) error {
 	if serverNode != nil && !args.DryRun {
 
 		serverNode.Auth = model.Auth{
-			Type:     model.AuthTypeSSHKey,
-			User:     "rancher",
-			SSHKey:   "~/.ssh/id_rsa",
+			Type:   model.AuthTypeSSHKey,
+			User:   "rancher",
+			SSHKey: "~/.ssh/id_rsa",
 		}
 
-		if err = install.WaitForNode(clientFactory, serverNode, time.Second*60); err == nil {
+		if err = install.WaitForNode(client.NewClientFactory(), serverNode, time.Second*60); err == nil {
 
 			var waitForNodeErr error
 			fmt.Printf("Waiting for kubeconfig ... ")

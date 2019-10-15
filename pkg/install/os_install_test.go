@@ -37,13 +37,16 @@ func TestOSInstallerFactory_MakeInstallers(t *testing.T) {
 		})
 	}
 
+	cf, _ := client.NewFakeClientFactory()
 	task := &OSInstallTask{
-		Task:          model.Task{},
-		Server:        &server,
-		Agents:        agents,
-		Version:       model.DefaultK3OSVersion,
-		Templates:     &ConfigTemplates{},
-		ClientFactory: client.Factory{},
+		OSImageTask: OSImageTask{
+			Task:          model.Task{},
+			Version:       model.DefaultK3OSVersion,
+			ClientFactory: cf,
+		},
+		Server:    &server,
+		Agents:    agents,
+		Templates: &ConfigTemplates{},
 	}
 
 	resourceDir := MakeResourceDir(task)
@@ -58,9 +61,6 @@ func TestOSInstallerFactory_MakeInstallers(t *testing.T) {
 }
 
 func TestOSInstaller_Install(t *testing.T) {
-
-	factory := client.Factory{Create: client.NewFakeClient}
-
 	node := test.CreateNodes()[0]
 	node.Hostname = "k3pi-1"
 
@@ -72,15 +72,16 @@ func TestOSInstaller_Install(t *testing.T) {
 		Node:     *node,
 	}
 
+	cf, _ := client.NewFakeClientFactory()
 	task := &OSInstallTask{
-		Task: model.Task{
-			DryRun: false,
+		OSImageTask: OSImageTask{
+			Task:          model.Task{},
+			Version:       model.DefaultK3OSVersion,
+			ClientFactory: cf,
 		},
-		Server:        &server,
-		Agents:        model.K3OSNodes{},
-		Version:       model.DefaultK3OSVersion,
-		ClientFactory: factory,
-		Templates:     &ConfigTemplates{},
+		Server:    &server,
+		Agents:    model.K3OSNodes{},
+		Templates: &ConfigTemplates{},
 	}
 
 	resourceDir := MakeResourceDir(task)

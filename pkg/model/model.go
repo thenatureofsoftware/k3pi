@@ -55,11 +55,17 @@ type InstallerFactory interface {
 }
 
 // InstallerFactories a set of installer factories
-type InstallerFactories []InstallerFactory
+type InstallerFactories interface {
+	// GetFactory fetches the installer factory for a install task
+	GetFactory(task interface{}) InstallerFactory
+}
 
-// GetFactory fetches the installer factory for a install task
-func (inf *InstallerFactories) GetFactory(task interface{}) InstallerFactory {
-	for _, f := range *inf {
+// InstallerFactoriesT a set of installer factories
+type InstallerFactoriesT []InstallerFactory
+
+// GetFactory looks up an installer factory for a given task
+func (infs *InstallerFactoriesT) GetFactory(task interface{}) InstallerFactory {
+	for _, f := range *infs {
 		if f.Supports(task) {
 			return f
 		}
@@ -113,6 +119,7 @@ type Auth struct {
 	SSHKey   string `json:"ssh_key,omitempty"`
 }
 
+// Auths authentications
 type Auths []*Auth
 
 // Node represents a machine witn an IP and authentication for SSH access

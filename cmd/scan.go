@@ -25,6 +25,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/client"
 	cmd2 "github.com/TheNatureOfSoftware/k3pi/pkg/cmd"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
@@ -71,10 +72,10 @@ and multiple username and password combinations.
 				User:   viper.GetString(ParamUser),
 				SSHKey: keyPath,
 			},
-			UserCredentials:   credentials(viper.GetStringSlice(ParamAuth)),
+			UserCredentials: credentials(viper.GetStringSlice(ParamAuth)),
 		}
 
-		nodes, err := cmd2.ScanForNodes(scanRequest, misc.NewHostScanner())
+		nodes, err := cmd2.ScanForNodes(client.NewClientFactory(), scanRequest, misc.NewHostScanner())
 		misc.ExitOnError(err, "node scan failed")
 
 		y, err := yaml.Marshal(nodes)
@@ -111,4 +112,3 @@ func init() {
 	_ = viper.BindPFlag(ParamHostnameSubstring, scanCmd.Flags().Lookup(ParamHostnameSubstring))
 	_ = viper.BindPFlag(ParamAuth, scanCmd.Flags().Lookup(ParamAuth))
 }
-

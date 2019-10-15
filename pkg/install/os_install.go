@@ -34,30 +34,70 @@ func (h *HostnameSpec) GetHostname(index int) string {
 	return fmt.Sprintf(h.Pattern, h.Prefix, index)
 }
 
-// OSInstallTask task for installing k3OS
-type OSInstallTask struct {
+// OSImageTask task for install or upgrade
+type OSImageTask struct {
 	model.Task
-	Server        *model.K3OSNode
-	Agents        model.K3OSNodes
 	Version       string
-	Templates     *ConfigTemplates
-	ClientFactory client.Factory
+	ClientFactory *client.Factory
 }
 
-// GetRemoteAssets gets all remote assets for all nodes in this task
+// GetImageFilePath returns the full path of the image file given an architecture (arm, arm64)
+func (task *OSImageTask) GetImageFilePath(resourceDir string, arch string) string {
+	return fmt.Sprintf("%s%s%s", resourceDir, PathSeparatorStr, task.GetImageFilename(arch))
+}
+
+// GetImageCheckSumFilePath returns the full path of the image check sum file given an architecture (arm, arm64)
+func (task *OSImageTask) GetImageCheckSumFilePath(resourceDir string, arch string) string {
+	return fmt.Sprintf("%s%s%s", resourceDir, PathSeparatorStr, task.GetImageCheckSumFilename(arch))
+}
+
+// GetImageFilename returns image filename given an architecture (arm, arm64)
+func (task *OSImageTask) GetImageFilename(arch string) string {
+	return fmt.Sprintf(K3OSImageFilenameTmpl, arch)
+}
+
+// GetImageCheckSumFilename returns image check sum filename given an architecture (arm, arm64)
+func (task *OSImageTask) GetImageCheckSumFilename(arch string) string {
+	return fmt.Sprintf(K3OSCheckSumFileTmpl, arch)
+}
+
+// GetImageFileURL returns image file url given an architecture (arm, arm64)
+func (task *OSImageTask) GetImageFileURL(arch string) string {
+	return fmt.Sprintf(K3OSReleaseURLTmpl, task.Version, task.GetImageFilename(arch))
+}
+
+// GetImageCheckSumURL returns image check sum file url given an architecture (arm, arm64)
+func (task *OSImageTask) GetImageCheckSumURL(arch string) string {
+	return fmt.Sprintf(K3OSReleaseURLTmpl, task.Version, task.GetImageCheckSumFilename(arch))
+}
+
+// OSInstallTask task for installing k3OS
+type OSInstallTask struct {
+	OSImageTask
+	Server    *model.K3OSNode
+	Agents    model.K3OSNodes
+	Templates *ConfigTemplates
+}
+
+// GetRemoteAssets gets all remote assets (k3OS image files) for all nodes in this task
 func (task *OSInstallTask) GetRemoteAssets() model.RemoteAssets {
-	var allNodes = model.K3OSNodes{}
-	var resources model.RemoteAssets
+	var allNodes = model.Nodes{}
 
 	if task.Server != nil {
-		allNodes = append(allNodes, task.Server)
+		allNodes = append(allNodes, &task.Server.Node)
 	}
 
 	for _, agent := range task.Agents {
-		allNodes = append(allNodes, agent)
+		allNodes = append(allNodes, &agent.Node)
 	}
 
-	for _, node := range allNodes {
+	return createRemoteAssets(task.OSImageTask, allNodes)
+}
+
+func createRemoteAssets(task OSImageTask, nodes model.Nodes) model.RemoteAssets {
+	var resources model.RemoteAssets
+
+	for _, node := range nodes {
 		arch := node.GetArch()
 		resources = append(resources, &model.RemoteAsset{
 			Filename:         task.GetImageFilename(arch),
@@ -68,36 +108,6 @@ func (task *OSInstallTask) GetRemoteAssets() model.RemoteAssets {
 	}
 
 	return resources
-}
-
-// GetImageFilePath returns the full path of the image file given an architecture (arm, arm64)
-func (task *OSInstallTask) GetImageFilePath(resourceDir string, arch string) string {
-	return fmt.Sprintf("%s%s%s", resourceDir, PathSeparatorStr, task.GetImageFilename(arch))
-}
-
-// GetImageCheckSumFilePath returns the full path of the image check sum file given an architecture (arm, arm64)
-func (task *OSInstallTask) GetImageCheckSumFilePath(resourceDir string, arch string) string {
-	return fmt.Sprintf("%s%s%s", resourceDir, PathSeparatorStr, task.GetImageCheckSumFilename(arch))
-}
-
-// GetImageFilename returns image filename given an architecture (arm, arm64)
-func (task *OSInstallTask) GetImageFilename(arch string) string {
-	return fmt.Sprintf(K3OSImageFilenameTmpl, arch)
-}
-
-// GetImageCheckSumFilename returns image check sum filename given an architecture (arm, arm64)
-func (task *OSInstallTask) GetImageCheckSumFilename(arch string) string {
-	return fmt.Sprintf(K3OSCheckSumFileTmpl, arch)
-}
-
-// GetImageFileURL returns image file url given an architecture (arm, arm64)
-func (task *OSInstallTask) GetImageFileURL(arch string) string {
-	return fmt.Sprintf(K3OSReleaseURLTmpl, task.Version, task.GetImageFilename(arch))
-}
-
-// GetImageCheckSumURL returns image check sum file url given an architecture (arm, arm64)
-func (task *OSInstallTask) GetImageCheckSumURL(arch string) string {
-	return fmt.Sprintf(K3OSReleaseURLTmpl, task.Version, task.GetImageCheckSumFilename(arch))
 }
 
 // OSInstallerFactory factory for creating k3OS installers
@@ -145,19 +155,19 @@ func makeInstaller(task *OSInstallTask, k3OSNode *model.K3OSNode, resourceDir st
 	//}
 
 	return &installer{
-		task:            task,
-		resourceDir:     resourceDir,
-		config:          configYaml,
-		target:          k3OSNode,
+		task:        task,
+		resourceDir: resourceDir,
+		config:      configYaml,
+		target:      k3OSNode,
 		//operatorFactory: cmdOperatorFactory,
 	}
 }
 
 type installer struct {
-	task            *OSInstallTask
-	resourceDir     string
-	config          *[]byte
-	target          *model.K3OSNode
+	task        *OSInstallTask
+	resourceDir string
+	config      *[]byte
+	target      *model.K3OSNode
 	//operatorFactory *ssh.CmdOperatorFactory
 }
 

@@ -24,10 +24,9 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"github.com/TheNatureOfSoftware/k3pi/pkg/client"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/install"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 )
 
-var installerFactories = model.InstallerFactories{&install.OSInstallerFactory{}, &install.K3sInstallerFactory{}}
-var clientFactory = client.Factory{Create: client.NewClient}
+var installerFactories model.InstallerFactories = &model.InstallerFactoriesT{&install.OSInstallerFactory{}, &install.K3sInstallerFactory{}, &install.OSUpgradeInstallerFactory{}}
+
