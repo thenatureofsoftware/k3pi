@@ -47,4 +47,5 @@ const (
 	ParamK3sVersionBindKey    = "k3s-version"
 	ParamK3OSVersionBindKey   = "k3OS-version"
 	ParamUpgradeFilename      = "update-filename"
+	ParamComponent            = "component"
 )

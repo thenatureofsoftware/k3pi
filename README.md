@@ -139,20 +139,24 @@ Flags:
 #### `upgrade`
 
 ```
-Upgrades all nodes to the specified version of k3s.
+Upgrades all nodes to the specified version of k3os or k3s.
         Example:
         
-        Upgrades all nodes from a nodes file
-        $ k3pi upgrade -f ./nodes.yaml --version <k3s version>
+        Upgrades k3s on all nodes from a nodes file
+        $ k3pi upgrade -f ./nodes.yaml -c k3s --version <k3s version>
+
+        Upgrades k3os on all nodes from a nodes file
+        $ k3pi upgrade -f ./nodes.yaml -c os --version <k3os version>
 
 Usage:
   k3pi upgrade [flags]
 
 Flags:
-      --dry-run           if true will run the install but not execute commands
-  -f, --filename string   scan output file with all nodes
-  -h, --help              help for upgrade
-  -t, --version string    target k3s version
+  -c, --component string   witch component to upgrade os|k3s
+      --dry-run            if true will run the install but not execute commands
+  -f, --filename string    scan output file with all nodes
+  -h, --help               help for upgrade
+  -v, --version string     target k3s version
 ```
 
 ## Links

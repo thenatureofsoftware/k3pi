@@ -38,6 +38,11 @@ import (
 	"time"
 )
 
+// NewClientFactory creates a fake client factory
+func NewClientFactory() *Factory {
+	return &Factory{Create:NewClient}
+}
+
 // Factory factory for creating new clients
 type Factory struct {
 	Create func(auth *model.Auth, address *model.Address) (Client, error)

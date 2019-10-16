@@ -24,6 +24,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	client2 "github.com/TheNatureOfSoftware/k3pi/pkg/client"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"strings"
@@ -39,12 +40,13 @@ var SupportedArch = map[string]bool{
 // ScanRequest parameter type for scanning for nodes
 type ScanRequest struct {
 	Cidr, HostnameSubString string
-	Port int
-	SSHAuth *model.Auth
+	Port                    int
+	SSHAuth                 *model.Auth
 	UserCredentials         map[string]string
 }
 
-func (request *ScanRequest) Auths() model.Auths {
+// GetAuths returns all authentications for this scan request
+func (request *ScanRequest) GetAuths() model.Auths {
 	var auths = model.Auths{}
 	auths = append(auths, request.SSHAuth)
 	for username, password := range request.UserCredentials {
@@ -57,7 +59,7 @@ func (request *ScanRequest) Auths() model.Auths {
 	return auths
 }
 
-func checkArch(address *model.Address, auth *model.Auth) (bool, string) {
+func checkArch(clientFactory *client2.Factory, address *model.Address, auth *model.Auth) (bool, string) {
 	client, err := clientFactory.Create(auth, address)
 	if err != nil {
 		return false, ""
@@ -76,7 +78,7 @@ func checkArch(address *model.Address, auth *model.Auth) (bool, string) {
 	return false, ""
 }
 
-func checkIfHostnameMatch(hostnameSubStr string, address *model.Address, auth *model.Auth) (string, bool) {
+func checkIfHostnameMatch(clientFactory *client2.Factory, hostnameSubStr string, address *model.Address, auth *model.Auth) (string, bool) {
 
 	client, err := clientFactory.Create(auth, address)
 	if err != nil {
@@ -92,7 +94,8 @@ func checkIfHostnameMatch(hostnameSubStr string, address *model.Address, auth *m
 	return hostname, strings.Contains(hostname, hostnameSubStr)
 }
 
-func ScanForNodes(scanRequest *ScanRequest, hostScanner misc.HostScanner) (*[]model.Node, error) {
+// ScanForNodes scans for nodes matching the scan request
+func ScanForNodes(clientFactory *client2.Factory, scanRequest *ScanRequest, hostScanner misc.HostScanner) (*[]model.Node, error) {
 
 	alive, err := hostScanner.ScanForAliveHosts(scanRequest.Cidr)
 	if err != nil {
@@ -103,14 +106,14 @@ func ScanForNodes(scanRequest *ScanRequest, hostScanner misc.HostScanner) (*[]mo
 
 	for i := range *alive {
 		address := model.NewAddress((*alive)[i], scanRequest.Port)
-		for _, auth := range scanRequest.Auths() {
-			if b, arch := checkArch(&address, auth); b {
-				if hn, ok := checkIfHostnameMatch(scanRequest.HostnameSubString, &address, auth); ok {
+		for _, auth := range scanRequest.GetAuths() {
+			if b, arch := checkArch(clientFactory, &address, auth); b {
+				if hn, ok := checkIfHostnameMatch(clientFactory, scanRequest.HostnameSubString, &address, auth); ok {
 					raspberries = append(raspberries, model.Node{
 						Hostname: hn,
 						Address:  address,
 						Arch:     arch,
-						Auth: *auth,
+						Auth:     *auth,
 					})
 					break
 				}
@@ -120,4 +123,3 @@ func ScanForNodes(scanRequest *ScanRequest, hostScanner misc.HostScanner) (*[]mo
 
 	return &raspberries, nil
 }
-

@@ -30,11 +30,12 @@ import (
 )
 
 const (
-host1 = "10.0.0.1"
-host2 = "10.0.0.2"
+	host1 = "10.0.0.1"
+	host2 = "10.0.0.2"
 )
+
 var fakeClient *client.FakeClient
-var hostScannerResult = []string {host1, host2}
+var hostScannerResult = []string{host1, host2}
 
 type mockHostScanner struct {
 	returnError bool
@@ -51,23 +52,27 @@ func createScanRequest() *ScanRequest {
 	scanRequest := &ScanRequest{
 		Cidr:              "127.0.0.1/32",
 		HostnameSubString: "",
-		SSHAuth:      	&model.Auth{
-			Type: model.AuthTypeSSHKey,
-			User:    "",
+		SSHAuth: &model.Auth{
+			Type:   model.AuthTypeSSHKey,
+			User:   "",
 			SSHKey: "~/.ssh/id_rsa",
-
 		},
-		Port:    22,
+		Port:            22,
 		UserCredentials: make(map[string]string),
 	}
 	return scanRequest
 }
 
 func TestScanForNodes(t *testing.T) {
-	setupFakeClient([]string{"aarch64", "host1", "armv7l", "host2"})
-	
+	clientFactory, _ := client.NewFakeClientFactory(func(script *client.FakeScript) {
+		script.Expect("uname -m", "aarch64")
+		script.Expect("hostname", "host1")
+		script.Expect("uname -m", "armv7l")
+		script.Expect("hostname", "host2")
+	})
+
 	request := createScanRequest()
-	nodes, err := ScanForNodes(request, &mockHostScanner{})
+	nodes, err := ScanForNodes(clientFactory, request, &mockHostScanner{})
 
 	assert.NoError(t, err)
 	assert.Len(t, *nodes, 2)
@@ -76,18 +81,22 @@ func TestScanForNodes(t *testing.T) {
 }
 
 func TestScanForNodes_FilterOnHostname(t *testing.T) {
-	setupFakeClient([]string{"aarch64", "host1", "armv7l", "host2"})
-
+	clientFactory, _ := client.NewFakeClientFactory(func(script *client.FakeScript) {
+		script.Expect("uname -m", "aarch64")
+		script.Expect("hostname", "host1")
+		script.Expect("uname -m", "armv7l")
+		script.Expect("hostname", "host2")
+	})
 	request := createScanRequest()
 	request.HostnameSubString = "2"
-	nodes, err := ScanForNodes(request, &mockHostScanner{})
+	nodes, err := ScanForNodes(clientFactory, request, &mockHostScanner{})
 
 	assert.NoError(t, err)
 	assert.Len(t, *nodes, 1)
 	assert.Equal(t, "host2", (*nodes)[0].Hostname)
 }
 
-func TestScanRequest_GetAuths (t *testing.T) {
+func TestScanRequest_GetAuths(t *testing.T) {
 	cred := make(map[string]string)
 	username := "test1"
 	password := "mysecret"
@@ -95,17 +104,16 @@ func TestScanRequest_GetAuths (t *testing.T) {
 	req := &ScanRequest{
 		Cidr:              "",
 		HostnameSubString: "",
-		SSHAuth:      	&model.Auth{
-			Type: model.AuthTypeSSHKey,
-			User:    username,
+		SSHAuth: &model.Auth{
+			Type:   model.AuthTypeSSHKey,
+			User:   username,
 			SSHKey: "~/.ssh/id_rsa",
-
 		},
-		Port:    22,
-		UserCredentials:   cred,
+		Port:            22,
+		UserCredentials: cred,
 	}
 
-	auths := req.Auths()
+	auths := req.GetAuths()
 
 	assert.Len(t, auths, 2)
 	for i := range auths {
@@ -115,17 +123,3 @@ func TestScanRequest_GetAuths (t *testing.T) {
 	assert.Equal(t, auths[1].Password, password)
 }
 
-func setupFakeClient(results []string) {
-	fakeClient = &client.FakeClient{
-		Auth:       nil,
-		Address:    nil,
-		FakeScript: client.FakeScript{
-			CmdResults: results,
-		},
-	}
-	clientFactory.Create = func(auth *model.Auth, address *model.Address) (i client.Client, e error) {
-		fakeClient.Auth = auth
-		fakeClient.Address = address
-		return fakeClient, nil
-	}
-}

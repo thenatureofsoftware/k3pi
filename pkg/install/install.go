@@ -95,7 +95,7 @@ func MakeResourceDir(assetOwner model.RemoteAssetOwner) string {
 }
 
 // WaitForNode wait for a node to come online
-func WaitForNode(clientFactory client.Factory, node *model.Node, timeout time.Duration) error {
+func WaitForNode(clientFactory *client.Factory, node *model.Node, timeout time.Duration) error {
 
 	timeToStop := time.Now().Add(timeout)
 	for {
@@ -110,4 +110,3 @@ func WaitForNode(clientFactory client.Factory, node *model.Node, timeout time.Du
 
 	return nil
 }
-
