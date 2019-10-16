@@ -2,9 +2,9 @@ package install
 
 import (
 	"fmt"
+	"github.com/TheNatureOfSoftware/k3pi/pkg/client"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
-	"github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"io/ioutil"
@@ -95,23 +95,11 @@ func MakeResourceDir(assetOwner model.RemoteAssetOwner) string {
 }
 
 // WaitForNode wait for a node to come online
-func WaitForNode(node *model.Node, sshSettings *ssh.Settings, timeout time.Duration) error {
-
-	resolvedSSHSettings := resolveSSHSettings(sshSettings)
-
-	clientConfig, sshAgentCloseHandler, err := ssh.NewClientConfig(resolveSSHSettings(sshSettings))
-	misc.PanicOnError(err, "failed to create ssh agent")
-	defer sshAgentCloseHandler()
-
-	ctx := &ssh.CmdOperatorCtx{
-		Address:         model.NewAddressStr(node.Address.IP, resolvedSSHSettings.Port),
-		SSHClientConfig: clientConfig,
-		EnableStdOut:    false,
-	}
+func WaitForNode(clientFactory *client.Factory, node *model.Node, timeout time.Duration) error {
 
 	timeToStop := time.Now().Add(timeout)
 	for {
-		_, err := ssh.NewCmdOperator(ctx)
+		_, err := clientFactory.Create(&node.Auth, &node.Address)
 		if err == nil {
 			break
 		} else if time.Now().After(timeToStop) {
@@ -121,15 +109,4 @@ func WaitForNode(node *model.Node, sshSettings *ssh.Settings, timeout time.Durat
 	}
 
 	return nil
-}
-
-func resolveSSHSettings(sshSettings *ssh.Settings) *ssh.Settings {
-	if sshSettings != nil {
-		return sshSettings
-	}
-	return &ssh.Settings{
-		User:    "rancher",
-		KeyPath: "~/.ssh/id_rsa",
-		Port:    "22",
-	}
 }

@@ -24,9 +24,9 @@ THE SOFTWARE.
 package cmd
 
 import (
+	client2 "github.com/TheNatureOfSoftware/k3pi/pkg/client"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
-	ssh2 "github.com/TheNatureOfSoftware/k3pi/pkg/ssh"
 	"strings"
 )
 
@@ -40,106 +40,86 @@ var SupportedArch = map[string]bool{
 // ScanRequest parameter type for scanning for nodes
 type ScanRequest struct {
 	Cidr, HostnameSubString string
-	SSHSettings             *ssh2.Settings
+	Port                    int
+	SSHAuth                 *model.Auth
 	UserCredentials         map[string]string
 }
 
-// ScanForRaspberries scans the network for RaspberryPi-ish ARM devices
-func ScanForRaspberries(request *ScanRequest, hostScanner misc.HostScanner, cmdOperatorFactory *ssh2.CmdOperatorFactory) (*[]model.Node, error) {
+// GetAuths returns all authentications for this scan request
+func (request *ScanRequest) GetAuths() model.Auths {
+	var auths = model.Auths{}
+	auths = append(auths, request.SSHAuth)
+	for username, password := range request.UserCredentials {
+		auths = append(auths, &model.Auth{
+			Type:     model.AuthTypeBasicAuth,
+			User:     username,
+			Password: password,
+		})
+	}
+	return auths
+}
 
-	settings := request.SSHSettings
+func checkArch(clientFactory *client2.Factory, address *model.Address, auth *model.Auth) (bool, string) {
+	client, err := clientFactory.Create(auth, address)
+	if err != nil {
+		return false, ""
+	}
 
-	alive, err := hostScanner.ScanForAliveHosts(request.Cidr)
+	result, err := client.Cmd("uname -m").Output()
+	if err != nil {
+		return false, ""
+	}
+
+	arch := strings.TrimSpace(string(result))
+	if _, supported := SupportedArch[arch]; supported {
+		return supported, arch
+	}
+
+	return false, ""
+}
+
+func checkIfHostnameMatch(clientFactory *client2.Factory, hostnameSubStr string, address *model.Address, auth *model.Auth) (string, bool) {
+
+	client, err := clientFactory.Create(auth, address)
+	if err != nil {
+		return "", false
+	}
+
+	result, err := client.Cmd("hostname").Output()
+	if err != nil {
+		return "", false
+	}
+
+	hostname := strings.TrimSpace(string(result))
+	return hostname, strings.Contains(hostname, hostnameSubStr)
+}
+
+// ScanForNodes scans for nodes matching the scan request
+func ScanForNodes(clientFactory *client2.Factory, scanRequest *ScanRequest, hostScanner misc.HostScanner) (*[]model.Node, error) {
+
+	alive, err := hostScanner.ScanForAliveHosts(scanRequest.Cidr)
 	if err != nil {
 		return nil, err
 	}
 
-	config, closeSSHAgent, err := ssh2.NewClientConfig(request.SSHSettings)
-	misc.PanicOnError(err, "failed to create ssh config")
-	defer closeSSHAgent()
-
-	raspberries := []model.Node{}
+	var raspberries []model.Node
 
 	for i := range *alive {
-		address := model.NewAddressStr((*alive)[i], settings.Port)
-
-		ctx := &ssh2.CmdOperatorCtx{
-			Address:         address,
-			SSHClientConfig: config,
-			EnableStdOut:    false,
-		}
-
-		if b, arch := checkArch(ctx, cmdOperatorFactory); b {
-			if hn, ok := checkIfHostnameMatch(request.HostnameSubString, ctx, cmdOperatorFactory); ok {
-				raspberries = append(raspberries, model.Node{
-					Hostname: hn,
-					Address:  address,
-					Arch:     arch,
-					Auth: model.Auth{
-						Type:   "ssh-key",
-						User:   settings.User,
-						SSHKey: settings.GetKeyPath(),
-					},
-				})
-			}
-		} else {
-			for username, password := range request.UserCredentials {
-				altConfig, _ := ssh2.PasswordClientConfig(username, password)
-				altCtx := *ctx
-				altCtx.SSHClientConfig = altConfig
-				if b, arch := checkArch(&altCtx, cmdOperatorFactory); b {
-					if hn, ok := checkIfHostnameMatch(request.HostnameSubString, &altCtx, cmdOperatorFactory); ok {
-						raspberries = append(raspberries, model.Node{
-							Hostname: hn,
-							Address:  address,
-							Arch:     arch,
-							Auth: model.Auth{
-								Type:     "basic-auth",
-								User:     username,
-								Password: password,
-							},
-						})
-						break
-					}
+		address := model.NewAddress((*alive)[i], scanRequest.Port)
+		for _, auth := range scanRequest.GetAuths() {
+			if b, arch := checkArch(clientFactory, &address, auth); b {
+				if hn, ok := checkIfHostnameMatch(clientFactory, scanRequest.HostnameSubString, &address, auth); ok {
+					raspberries = append(raspberries, model.Node{
+						Hostname: hn,
+						Address:  address,
+						Arch:     arch,
+						Auth:     *auth,
+					})
+					break
 				}
 			}
 		}
 	}
 
 	return &raspberries, nil
-}
-
-func checkIfHostnameMatch(hostnameSubStr string, ctx *ssh2.CmdOperatorCtx, cmdOperatorFactory *ssh2.CmdOperatorFactory) (string, bool) {
-
-	cmdOperator, err := cmdOperatorFactory.Create(ctx)
-	if err != nil {
-		return "", false
-	}
-
-	result, err := cmdOperator.Execute("hostname")
-	if err != nil {
-		return "", false
-	}
-
-	hostname := strings.TrimSpace(string(result.StdOut))
-	return hostname, strings.Contains(hostname, hostnameSubStr)
-}
-
-func checkArch(ctx *ssh2.CmdOperatorCtx, cmdOperatorFactory *ssh2.CmdOperatorFactory) (bool, string) {
-	cmdOperator, err := cmdOperatorFactory.Create(ctx)
-	if err != nil {
-		return false, ""
-	}
-
-	result, err := cmdOperator.Execute("uname -m")
-	if err != nil {
-		return false, ""
-	}
-
-	arch := strings.TrimSpace(string(result.StdOut))
-	if _, supported := SupportedArch[arch]; supported {
-		return supported, arch
-	}
-
-	return false, ""
 }

@@ -23,7 +23,7 @@ type K3sUpgradeTask struct {
 	model.Task
 	Version       string
 	Nodes         model.Nodes
-	ClientFactory client.Factory
+	ClientFactory *client.Factory
 }
 
 // GetRemoteAssets gets all remote assets for a given k3s upgrade task
