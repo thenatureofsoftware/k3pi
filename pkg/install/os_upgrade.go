@@ -65,7 +65,7 @@ func (ins *osUpgradeInstaller) Install() error {
 
     var script client.Script
     if hasUpgradeRootfs(sshClient) {
-        script = sshClient.Cmdf("sudo k3os-upgrade-rootfs %s", ins.task.Version)
+        script = sshClient.Cmdf("sudo K3OS_VERSION=%s k3os-upgrade-rootfs", ins.task.Version)
         script = script.Cmd("sudo reboot -d 1 &")
     } else {
         err = sshClient.Copy(ins.task.GetImageFilePath(ins.resourceDir, arch), fmt.Sprintf("~/%s", ins.task.GetImageFilename(arch)))
