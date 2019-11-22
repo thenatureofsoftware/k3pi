@@ -65,7 +65,7 @@ func TestOsUpgradeInstaller_Install_WithUpgradeRootfsScript(t *testing.T) {
     }
 
     script.Expect("which k3os-upgrade-rootfs", "/usr/sbin/k3os-upgrade-rootfs")
-    script.Expect(fmt.Sprintf("sudo k3os-upgrade-rootfs %s", task.Version), "Upgrade complete! Please reboot.")
+    script.Expect(fmt.Sprintf("sudo K3OS_VERSION=%s k3os-upgrade-rootfs", task.Version), "Upgrade complete! Please reboot.")
 
     err := installer.Install()
 
