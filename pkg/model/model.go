@@ -8,7 +8,7 @@ import (
 
 const (
 	// DefaultK3OSVersion default k3OS version
-	DefaultK3OSVersion = "v0.7.1"
+	DefaultK3OSVersion = "v0.9.0"
 	// AuthTypeSSHKey ssh private key authentication
 	AuthTypeSSHKey = "ssh-key"
 	// AuthTypeBasicAuth username / password authentication

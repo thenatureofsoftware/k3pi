@@ -138,7 +138,7 @@ func Install(args *InstallArgs) error {
 			SSHKey: "~/.ssh/id_rsa",
 		}
 
-		if err = install.WaitForNode(client.NewClientFactory(), serverNode, time.Second*60); err == nil {
+		if err = install.WaitForNode(client.NewClientFactory(), serverNode, time.Second*120); err == nil {
 
 			var waitForNodeErr error
 			fmt.Printf("Waiting for kubeconfig ... ")
