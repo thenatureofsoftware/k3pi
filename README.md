@@ -47,7 +47,6 @@ like `k3OS` that's where this tool might come in handy.
 * [`scan`](#scan) - for finding your target nodes
 * [`install`](#install) - for installing k3OS
 * [`template`](#template) - for generating sample templates for server and agent
-* [`upgrade`](#upgrade) - for installing a newer (or older) versions of `k3s` and `k3OS`
 
 #### `scan`
 ```
