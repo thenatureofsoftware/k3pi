@@ -66,9 +66,9 @@ func createScanRequest() *ScanRequest {
 func TestScanForNodes(t *testing.T) {
 	clientFactory, _ := client.NewFakeClientFactory(func(script *client.FakeScript) {
 		script.Expect("uname -m", "aarch64")
-		script.Expect("hostname", "host1")
+		script.Expect("cat /etc/hostname", "host1")
 		script.Expect("uname -m", "armv7l")
-		script.Expect("hostname", "host2")
+		script.Expect("cat /etc/hostname", "host2")
 	})
 
 	request := createScanRequest()
@@ -83,9 +83,9 @@ func TestScanForNodes(t *testing.T) {
 func TestScanForNodes_FilterOnHostname(t *testing.T) {
 	clientFactory, _ := client.NewFakeClientFactory(func(script *client.FakeScript) {
 		script.Expect("uname -m", "aarch64")
-		script.Expect("hostname", "host1")
+		script.Expect("cat /etc/hostname", "host1")
 		script.Expect("uname -m", "armv7l")
-		script.Expect("hostname", "host2")
+		script.Expect("cat /etc/hostname", "host2")
 	})
 	request := createScanRequest()
 	request.HostnameSubString = "2"

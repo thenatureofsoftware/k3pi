@@ -15,15 +15,14 @@ like `k3OS` that's where this tool might come in handy.
 
 1. Boot your ARM device with an OS image that has `ssh` enabled.
   
-   For Raspberry Pi we recommend [HypriotOS](https://blog.hypriot.com/post/releasing-HypriotOS-1-11/). Install
-   instructions can be found [here](https://github.com/hypriot/image-builder-rpi/releases).
+   For Raspberry Pi we recommend [Ubuntu](https://ubuntu.com/download/raspberry-pi).
 
 2. Scan your network for all your devices that should be part of the `k3s` cluster.
    
    ```shell script
-   $ k3pi scan --auth pirate:hypriot --substr pearl
+   $ k3pi scan --auth ubuntu:ubuntu --substr ubuntu
    $ # Save the output
-   $ $ k3pi scan --auth pirate:hypriot --substr pearl > nodes.yaml
+   $ $ k3pi scan --auth ubuntu:ubuntu --substr ubuntu > nodes.yaml
    ```
 
 3. Install `k3os` using the `install` command
@@ -32,7 +31,7 @@ like `k3OS` that's where this tool might come in handy.
    $ # Make a dry-run install first
    $ k3pi install --filename nodes.yaml --server <your selected server node ip> --dry-run
    $ # You can also combine scan and install
-   $ k3pi scan --auth pirate:hypriot --substr pearl | k3pi install -y --server <your selected server node ip> --dry-run
+   $ k3pi scan --auth ubuntu:ubuntu --substr pearl | k3pi install -y --server <your selected server node ip> --dry-run
    $ # If every thing looks good, the run the install, this will overwrite your nodes
    $ k3pi install --filename nodes.yaml --server <your selected server node ip>
    ```
@@ -136,33 +135,9 @@ Flags:
   -h, --help   help for template
 ```
 
-#### `upgrade`
-
-```
-Upgrades all nodes to the specified version of k3os or k3s.
-        Example:
-        
-        Upgrades k3s on all nodes from a nodes file
-        $ k3pi upgrade -f ./nodes.yaml -c k3s --version <k3s version>
-
-        Upgrades k3os on all nodes from a nodes file
-        $ k3pi upgrade -f ./nodes.yaml -c os --version <k3os version>
-
-Usage:
-  k3pi upgrade [flags]
-
-Flags:
-  -c, --component string   witch component to upgrade os|k3s
-      --dry-run            if true will run the install but not execute commands
-  -f, --filename string    scan output file with all nodes
-  -h, --help               help for upgrade
-  -v, --version string     target k3s version
-```
-
 ## Links
 
-* [HypriotOS](https://blog.hypriot.com/post/releasing-HypriotOS-1-11/)
-* [HypriotOS Releases](https://github.com/hypriot/image-builder-rpi/releases)
+* [Ubuntu for RaspberryPi](https://ubuntu.com/download/raspberry-pi)
 * [Rancher k3OS](https://github.com/rancher/k3os)
 * [Rancher k3s](https://github.com/rancher/k3s)
 * [Rancher k3d](https://github.com/rancher/k3d)

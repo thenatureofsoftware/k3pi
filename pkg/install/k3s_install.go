@@ -6,6 +6,7 @@ import (
 	"github.com/TheNatureOfSoftware/k3pi/pkg/misc"
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 	"github.com/pkg/errors"
+	"net/url"
 	"strings"
 )
 
@@ -13,7 +14,7 @@ const (
 	// K3sReleaseURLTmpl k3s release URL template
 	K3sReleaseURLTmpl = "https://github.com/rancher/k3s/releases/download/%s/%s"
 	// K3sBinFilenameTmpl k3s binary filename template
-	K3sBinFilenameTmpl = "k3s-%s"
+	K3sBinFilenameTmpl = "k3s%s"
 	// K3sBinCheckSumFilenameTmpl k3s binary check sum filename template
 	K3sBinCheckSumFilenameTmpl = "sha256sum-%s.txt"
 )
@@ -32,13 +33,13 @@ func (task *K3sUpgradeTask) GetRemoteAssets() model.RemoteAssets {
 	var remoteAssets model.RemoteAssets
 
 	for _, node := range task.Nodes {
-		fn := fmt.Sprintf(K3sBinFilenameTmpl, node.GetArch("arm:armhf"))
+		fn := fmt.Sprintf(K3sBinFilenameTmpl, node.GetArch("arm64:-arm64", "arm:-armhf", "amd64:"))
 		csfn := fmt.Sprintf(K3sBinCheckSumFilenameTmpl, node.GetArch())
 		remoteAssets = append(remoteAssets, &model.RemoteAsset{
 			Filename:         fn,
-			FileURL:          fmt.Sprintf(K3sReleaseURLTmpl, task.Version, fn),
+			FileURL:          fmt.Sprintf(K3sReleaseURLTmpl, url.QueryEscape(task.Version), fn),
 			CheckSumFilename: csfn,
-			CheckSumURL:      fmt.Sprintf(K3sReleaseURLTmpl, task.Version, csfn),
+			CheckSumURL:      fmt.Sprintf(K3sReleaseURLTmpl, url.QueryEscape(task.Version), csfn),
 		})
 	}
 

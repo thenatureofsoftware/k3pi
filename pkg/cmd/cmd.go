@@ -28,5 +28,5 @@ import (
 	"github.com/TheNatureOfSoftware/k3pi/pkg/model"
 )
 
-var installerFactories model.InstallerFactories = &model.InstallerFactoriesT{&install.OSInstallerFactory{}, &install.K3sInstallerFactory{}, &install.OSUpgradeInstallerFactory{}}
+var installerFactories model.InstallerFactories = &model.InstallerFactoriesT{&install.OSInstallerFactory{}, &install.K3sInstallerFactory{}}
 

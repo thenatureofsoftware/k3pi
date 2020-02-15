@@ -85,7 +85,7 @@ func checkIfHostnameMatch(clientFactory *client2.Factory, hostnameSubStr string,
 		return "", false
 	}
 
-	result, err := client.Cmd("hostname").Output()
+	result, err := client.Cmd("cat /etc/hostname").Output()
 	if err != nil {
 		return "", false
 	}
